@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101b27">
+  <meta name="description" content="Nächste Vienna Sightseeing Bus-Abfahrt nach Haltestellennummer und Linie finden.">
+  <title>Next Bus · Vienna Sightseeing v11 Vorschau-Test v12</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<style>
+:root{color-scheme:dark;--bg:#0b141d;--panel:#142230;--panel2:#1a2c3d;--line:#2a3f52;--text:#f5f8fb;--sub:#a9b8c7;--muted:#7a8fa2;--yellow:#f6c73f;--blue:#20acef;--red:#f04f54;--green:#4ed49b;--r:20px;--sat:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:radial-gradient(ellipse 120% 420px at 50% -20%,#21435a 0,transparent 75%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.45;-webkit-tap-highlight-color:transparent;padding-bottom:env(safe-area-inset-bottom,0px)}
+.appbar{position:sticky;top:0;z-index:20;padding-top:var(--sat);background:rgba(11,20,29,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid #1f3142}
+.appbar-in{position:relative;max-width:720px;margin:0 auto;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:52px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}.brand-copy{min-width:0}.brand-title{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.brand b{display:block;font-size:.82rem!important;white-space:nowrap;font-size:.95rem;font-weight:850;letter-spacing:.02em;text-transform:uppercase;line-height:1.1}.brand em{font-style:normal;color:var(--yellow)}.brand small{display:block;white-space:normal;color:var(--sub);font-size:.62rem;font-weight:700;margin-top:5px;line-height:1.25;max-width:390px;font-variant-numeric:tabular-nums}.app-meta{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none}.app-version{position:static;transform:none;color:var(--yellow);font-size:.62rem;font-weight:800;white-space:nowrap;letter-spacing:.02em;text-align:left;pointer-events:none}.clock{flex:none;text-align:right;font-size:.64rem!important;color:var(--muted);font-size:.7rem;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.2;white-space:nowrap}.clock b{display:block;color:var(--text);font-size:1.3rem;font-weight:850;letter-spacing:-.02em}
+.logo{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:10px;background:linear-gradient(145deg,#ffd75e,#f2b922);color:#111a23;font-size:21px;font-weight:900;box-shadow:0 4px 14px rgba(246,199,63,.28)}
+.clock{flex:none;text-align:right;font-size:.64rem!important;color:var(--muted);font-size:.7rem;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.2;white-space:nowrap}.clock b{display:block;color:var(--text);font-size:1.3rem;font-weight:850;letter-spacing:-.02em}
+.status-dot{display:inline-block;width:7px;height:7px;background:var(--green);border-radius:50%;margin-right:5px;box-shadow:0 0 8px var(--green)}
+#validity::before{content:"";display:inline-block;width:7px;height:7px;background:var(--green);border-radius:50%;margin:0 6px 1px 0;box-shadow:0 0 8px var(--green);vertical-align:middle}
+.wrap{max-width:720px;margin:0 auto;padding:16px 16px 48px}
+.card{background:linear-gradient(160deg,rgba(26,44,61,.95),rgba(18,31,44,.97));border:1px solid var(--line);border-radius:var(--r);box-shadow:0 14px 36px rgba(0,0,0,.22)}
+.search-card{padding:16px;margin-bottom:14px}
+.form-label{display:block;color:var(--sub);font-weight:750;font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.number-bar{display:flex;gap:8px}.number-wrap{position:relative;flex:1}
+.number-wrap svg{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+input[type=number]{display:block;width:100%;height:64px;background:#08111a;border:1.5px solid #34495c;border-radius:16px;color:#fff;padding:0 16px 0 58px;font-family:inherit;font-weight:850;font-size:2.2rem;font-variant-numeric:tabular-nums;letter-spacing:-.02em;-moz-appearance:textfield}
+input[type=number]:focus{border-color:var(--yellow);box-shadow:0 0 0 4px rgba(246,199,63,.14);outline:none}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input::placeholder{color:#4f6578;font-weight:700}
+input:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--yellow);outline-offset:3px}
+button{font:inherit;cursor:pointer}
+.clear{width:64px;height:64px;background:#22364a;border:1px solid #34495c;border-radius:16px;color:#d2deea;font-size:28px;display:grid;place-items:center}
+
+.suggest{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px;align-items:center}
+.suggest-label{grid-column:1/-1;color:var(--sub);font-size:.74rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
+.chip{min-width:0;min-height:58px;padding:0;border:1px solid #3a5167;background:#1c2f41;border-radius:14px;color:#e3edf6;font-weight:850;font-size:1.2rem;font-variant-numeric:tabular-nums}
+.chip:active{transform:scale(.94);background:#27415a}
+.line-area{margin-top:18px;padding-top:16px;border-top:1px solid #263b4d}
+.lines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.line-btn{position:relative;display:flex;align-items:stretch;gap:10px;text-align:left;color:#eaf0f5;background:#0f1c28;border:1.5px solid #2f4558;border-radius:16px;padding:12px 11px;min-height:118px;overflow:hidden}
+.line-btn::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 0 0,color-mix(in srgb,var(--c),transparent 82%),transparent 60%);pointer-events:none}
+.line-btn[aria-pressed=true]{background:color-mix(in srgb,var(--c),#0f1c28 86%);border-color:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c),transparent 82%)}
+.line-btn:not([aria-pressed=true]):active{transform:scale(.97)}
+.swatch{width:6px;border-radius:4px;flex:none;background:var(--c);align-self:stretch}
+.line-copy{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;flex:1;position:relative;z-index:1}
+.line-title{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;color:var(--c);font-size:.8rem;font-weight:850;background:color-mix(in srgb,var(--c),#0f1c28 84%);border:1px solid color-mix(in srgb,var(--c),transparent 60%);padding:4px 8px;border-radius:8px}
+.line-btn[aria-pressed=true] .line-title:after{content:' ✓'}
+.line-next{font-size:2rem;font-weight:850;letter-spacing:-.05em;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.line-wait{font-size:.78rem;font-weight:800;color:var(--c)}
+.line-stop-row{display:flex;align-items:center;gap:7px;width:100%;min-width:0;margin-top:2px}
+.line-stop-name{color:#bccbd8;font-size:.7rem;font-weight:650;line-height:1.25;overflow-wrap:anywhere}
+.stop-circle{display:inline-flex;align-items:center;justify-content:center;flex:none;width:26px;height:26px;border-radius:50%;background:var(--stop-bg);color:var(--stop-fg);font-size:.73rem;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.stop-circle-large{width:42px;height:42px;font-size:1.1rem}
+.bus-code,.trip-code{display:inline-flex;align-items:center;justify-content:center;min-width:28px;padding:3px 7px;border-radius:7px;background:var(--c,#f6c73f);font-size:.7rem;font-weight:900;line-height:1.15;color:#000!important}
+.route-pill .bus-code{--c:var(--active);margin-left:2px}
+.message{margin-top:16px;padding:13px 14px;background:rgba(246,199,63,.09);border:1px solid rgba(246,199,63,.26);border-radius:13px;color:#e3e9ee;font-size:.9rem}
+.result{--active:var(--yellow);position:relative;overflow:hidden;padding:20px;border-color:color-mix(in srgb,var(--active),transparent 62%);background:radial-gradient(ellipse 90% 220px at 0 0,color-mix(in srgb,var(--active),transparent 86%),transparent 70%),linear-gradient(160deg,#1a2c3d,#121f2c)}
+.result:before{content:"";position:absolute;left:0;top:0;width:100%;height:4px;background:var(--active)}
+.result[style*='--active: #f04f54']{--active-text:#fff}
+
+.result-top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+.route-pill{display:inline-flex;align-items:center;gap:7px;border:1px solid color-mix(in srgb,var(--active),transparent 45%);color:var(--active);background:color-mix(in srgb,var(--active),transparent 88%);border-radius:99px;font-size:.8rem;font-weight:800;padding:6px 12px}
+.route-pill i{width:8px;height:8px;background:var(--active);border-radius:50%}
+.stn-label{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:.78rem;color:#c5f7dc;font-weight:900;background:#214738;border:1px solid #35765a;border-radius:999px;padding:5px 11px;white-space:nowrap}.stn-label::before{content:'';display:inline-block;flex:none;width:8px;height:8px;border-radius:50%;background:var(--green)}.stn-label.traffic-jam{color:#ffd0d0;background:#512a2a;border-color:#a64b4b}.stn-label.traffic-jam::before{background:var(--red)}.stn-label.traffic-unknown{color:#d0d7df;background:#303b46;border-color:#667582}.stn-label.traffic-unknown::before{background:#9aa6b2}.stn-label.traffic-delay{color:#ffe4ad;background:#514126;border-color:#a78038}.stn-label.traffic-delay::before{background:#f5b942}
+.stop-name{display:flex;align-items:center;gap:12px;font-size:clamp(1.15rem,4.4vw,1.5rem);font-weight:780;letter-spacing:-.025em;line-height:1.2;margin-bottom:20px;overflow-wrap:anywhere}
+.departure-caption{text-transform:uppercase;font-weight:800;letter-spacing:.12em;font-size:.7rem;color:var(--sub)}
+.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.big-time{font-size:clamp(4rem,19vw,6.6rem);font-weight:850;letter-spacing:-.07em;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;margin-top:4px}
+.cd-box{text-align:right;margin-left:auto}
+.cd-live{font-size:clamp(2rem,9vw,3rem);font-weight:850;line-height:1;letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:var(--active)}
+.cd-live.soon{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.55}}
+@media(prefers-reduced-motion:reduce){.cd-live.soon{animation:none}}
+.countdown{color:var(--sub);font-size:.95rem;font-weight:750;margin-top:4px}
+.bar{height:6px;border-radius:9px;background:#0b1620;margin:16px 0 4px;overflow:hidden}.bar i{display:block;height:100%;width:0;border-radius:9px;background:var(--active);transition:width 1s linear}
+.next-block{border-top:1px solid #2c4154;padding-top:16px;margin-top:16px}
+.next-label{font-size:.78rem;color:var(--sub);font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.timeline-head{display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.timeline-meta{color:var(--muted);font-size:.7rem;font-weight:650;margin-top:2px}
+.timeline-tools{display:flex;gap:6px}
+.timeline-nav{height:40px;min-width:40px;border-radius:11px;border:1px solid #3b5267;color:#f0f6fc;background:#223548;display:grid;place-items:center;font-size:1.25rem;font-weight:850;line-height:1}
+.timeline-nav:disabled{opacity:.3;cursor:default}
+.timeline-now{padding:0 14px;color:#081824;background:var(--active);border-color:var(--active);font-size:.8rem}
+.timeline-now:disabled{background:#223548;color:var(--muted)}
+.departure-timeline{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;touch-action:pan-x pan-y;scroll-snap-type:x mandatory;scroll-padding-inline:30%;padding:10px 4px 12px;margin:0 -4px;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%)}
+.departure-timeline::-webkit-scrollbar{display:none}
+.departure-timeline:focus-visible{outline:2px solid var(--active);border-radius:10px}
+.trip-card{flex:0 0 104px;min-height:108px;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:15px;border:1px solid #324a5e;background:#162636;padding:10px 6px;position:relative}
+.trip-time{font-size:1.4rem;font-weight:850;letter-spacing:-.04em;line-height:1.1;font-variant-numeric:tabular-nums}
+.trip-tag{min-height:15px;font-size:.66rem;font-weight:800;color:#8fa4b6}
+.trip-card.is-past{opacity:.42;background:#111d29}
+.trip-card.is-upcoming{border-color:#486178}
+.trip-card.is-current{opacity:1;border:2px solid var(--active);background:color-mix(in srgb,var(--active) 20%,#13212e 80%);box-shadow:0 0 0 4px color-mix(in srgb,var(--active),transparent 86%),0 8px 26px color-mix(in srgb,var(--active),transparent 74%);transform:translateY(-3px) scale(1.04)}
+.trip-card.is-current .trip-tag{color:#fff}
+.trip-card.is-current:before{content:'';position:absolute;top:-6px;left:calc(50% - 4px);width:8px;height:8px;border-radius:50%;background:var(--active);box-shadow:0 0 10px var(--active)}
+.trip-card:hover,.trip-card:focus-visible{outline:none;opacity:1;border-color:var(--active)}
+.timeline-help{margin-top:2px;color:var(--muted);font-size:.7rem;text-align:center}
+.small-note{color:var(--muted);font-size:.78rem;margin-top:12px}
+.hidden{display:none!important}.result{scroll-margin-top:74px}
+.tools{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:16px 0 10px}
+.link-button{background:#162636;border:1px solid #2c4256;color:#f4d16d;padding:9px 14px;border-radius:99px;font-size:.8rem;font-weight:750}
+.test-panel{padding:16px;margin:0 0 14px}.test-panel p{color:var(--sub);font-size:.83rem;margin:0 0 12px}
+.test-inputs{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.test-inputs label{font-size:.75rem;color:var(--sub);font-weight:700;display:flex;flex-direction:column;gap:6px}
+input[type=date],input[type=time]{background:#0b1620;color:#fff;border:1px solid #3a5167;border-radius:11px;min-height:44px;padding:8px 11px;font:inherit;color-scheme:dark}
+.reset{background:#2c4357;border:0;color:#fff;padding:12px 16px;border-radius:11px;font-size:.85rem;font-weight:750}
+details{background:#122030;border:1px solid #29404f;border-radius:16px;margin-top:12px;overflow:hidden}
+summary{padding:16px 17px;font-size:.9rem;font-weight:780;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center}
+summary::-webkit-details-marker{display:none}summary::after{content:'＋';color:var(--yellow);font-size:1.1rem}details[open] summary::after{content:'－'}
+.detail-body{padding:0 17px 17px}.detail-body p{color:var(--sub);font-size:.83rem;margin:0 0 12px}
+#fullTimesLabel{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.all-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px}
+.all-list button{border:1px solid #3a5167;background:#1c3044;color:#f0f6fc;border-radius:11px;padding:9px 6px;font-size:.95rem;font-weight:760;font-variant-numeric:tabular-nums}
+.trip-id{display:block;margin-top:3px;font-size:.66rem;font-weight:800;color:#9fb5c8}
+.source-scroll{overflow:auto;border-radius:10px}.source-scroll img{width:1200px;max-width:none;height:auto}
+.track-card{margin-top:16px;padding:0;overflow:hidden}
+.track-title-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.track-title{display:flex;align-items:center;gap:10px;font-size:1.02rem;font-weight:850}
+.track-icon{display:grid;place-items:center;border-radius:12px;width:38px;height:38px;background:#213a50;color:#8fd5ff;font-size:19px}
+.track-live{display:inline-flex;align-items:center;gap:6px;font-size:.68rem;letter-spacing:.05em;color:#9bd9b5;font-weight:800;text-transform:uppercase}
+.track-live::before{content:'';width:7px;height:7px;background:var(--green);border-radius:50%}
+.track-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center;justify-content:space-between}
+.track-btn{background:var(--yellow);color:#152232;border:0;border-radius:13px;padding:0 18px;font-size:.88rem;font-weight:850;min-height:48px}
+.track-toggle{display:flex;align-items:center;justify-content:space-between;gap:9px;flex:1 1 auto;width:100%;min-height:54px;box-sizing:border-box;text-align:left;background:transparent;color:var(--text);border:0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:16px 17px;font-size:.9rem;font-weight:780;line-height:1.25;cursor:pointer}
+.track-toggle-mark{display:inline-flex;align-items:center;justify-content:center;flex:none;font-family:inherit;font-size:1rem;line-height:1;font-weight:700;color:var(--yellow);text-align:center;width:1.25em;height:1.25em;min-width:1.25em}
+.track-link{font-size:.82rem;font-weight:780;color:#a9dfff;text-decoration:underline;text-underline-offset:3px;padding:9px 2px}
+.track-info{font-size:.74rem;color:var(--muted);margin:12px 16px 16px}
+.track-viewport{position:relative;isolation:isolate;overflow:hidden;margin:12px 16px 0;height:500px;border-radius:14px;background:#e9f0f5;border:1px solid #475c6e}
+.track-viewport iframe{position:absolute;left:0;top:0;width:100%;height:1400px;border:0;background:#fff;transform:translateY(-420px)}
+.track-viewport.full-page{height:min(76vh,720px);overflow:auto;overscroll-behavior:contain}.track-viewport.full-page iframe{position:static;left:auto;top:auto;transform:none;height:1800px;min-height:1800px}
+.track-tools{display:flex;justify-content:space-between;flex-wrap:wrap;gap:9px;margin-top:10px;align-items:center}
+.track-tools button{font-size:.76rem;padding:5px 0;background:transparent;border:0;color:#a9dfff;font-weight:750;text-decoration:underline;text-underline-offset:3px}
+.track-foot{font-size:.72rem;color:var(--muted)}
+@media(max-width:430px){.track-viewport{height:470px}.track-viewport iframe{transform:translateY(-490px)}}
+@media(min-width:680px){.lines{grid-template-columns:repeat(4,minmax(0,1fr))}.track-viewport iframe{transform:translateY(-375px)}.result{padding:26px}}
+@media(max-width:380px){.wrap{padding-inline:11px}.line-next{font-size:1.7rem}.trip-card{flex-basis:92px}}
+@media(prefers-reduced-motion:no-preference){.chip,.line-btn,.trip-card{transition:border-color .17s,background .17s,transform .15s,opacity .2s}}
+.footer{margin-top:24px;border-top:1px solid #243849;padding-top:16px;color:var(--muted);font-size:.74rem;line-height:1.65}
+.tt-status{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--sub);font-size:.78rem;font-weight:650;margin-bottom:12px}
+.tt-status i{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}.tt-status[data-k=ok] i{background:var(--green)}.tt-status[data-k=err] i{background:var(--red)}.tt-status[data-k=off] i{background:var(--yellow)}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;background:#173a2b;border:1px solid #3a8a63;color:#d7f7e6;padding:12px 18px;border-radius:14px;font-weight:750;font-size:.88rem;z-index:50;transition:.3s;pointer-events:none;max-width:92vw;text-align:center}.toast.show{opacity:1;transform:translate(-50%,0)}
+.footer-version{margin-top:12px;text-align:right;color:var(--yellow);font-size:.72rem;font-weight:800;letter-spacing:.02em}
+@media(max-width:480px){.appbar-in{gap:6px;padding-inline:11px}.brand{gap:7px}.brand-title{gap:5px;flex-wrap:wrap}.brand b{font-size:.78rem!important}.brand small{max-width:190px;font-size:.58rem}.app-version{font-size:.53rem}.app-meta{padding-bottom:0}.clock{font-size:.56rem!important}.logo{width:30px;height:30px}}
+
+/* Live GPS map and colour-based traffic estimation */
+#gpsStatus{font-size:.78rem;color:var(--sub);margin:12px 0 8px;line-height:1.45}
+#gpsMap{height:390px;width:100%;border-radius:13px;border:1px solid #344b60;overflow:hidden;background:#172737;z-index:1}.traffic-summary{margin:8px 0 12px;padding:10px 12px;border-radius:10px;background:#203447;border:1px solid #344b60;font-size:.86rem;font-weight:850}.traffic-summary.congested{background:#512a2a;color:#ffd0d0;border-color:#a64b4b}.traffic-summary.moving{background:#214738;color:#c5f7dc;border-color:#35765a}.map-legend{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px;color:var(--sub);font-size:.7rem}.map-legend span{display:flex;align-items:center;gap:4px}.map-legend i{width:10px;height:10px;border-radius:50%;display:inline-block}.vehicle-dot{border:2px solid #fff;border-radius:50%;box-shadow:0 1px 5px #0009}.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#142230;color:#f5f8fb}.leaflet-popup-content{margin:8px 11px;font-size:12px}
+.gps-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.gps-vehicle{min-width:0;text-align:left;border:1px solid #344b60;background:#10202e;border-radius:12px;padding:11px;color:var(--text)}
+.gps-vehicle b{display:block;overflow-wrap:anywhere;font-size:.88rem}.gps-vehicle small{display:block;color:var(--sub);font-size:.72rem;margin-top:5px;line-height:1.4}
+.gps-deviation{display:inline-block;margin-top:8px;padding:5px 8px;border-radius:7px;font-size:.78rem;font-weight:850;background:#263746;color:#e8f0f8}
+.gps-deviation.late{background:#512a2a;color:#ffd0d0}.gps-deviation.early{background:#214738;color:#c5f7dc}.gps-deviation.unknown{background:#3a3425;color:#ffe2a3}.gps-line-tag{display:inline-flex;align-items:center;justify-content:center;margin:2px 3px 2px 0;padding:4px 8px;border-radius:7px;font-weight:900;font-size:.78rem;line-height:1.2;border:1px solid rgba(255,255,255,.25);box-shadow:0 1px 4px rgba(0,0,0,.18)}.gps-line-note{display:block;margin-top:5px;font-weight:650}
+.gps-age{color:#a9d9b9}.gps-age.stale{color:#ffc56b}
+@media(max-width:430px){.gps-list{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="appbar"><div class="appbar-in">
+  <div class="brand"><span class="logo" aria-hidden="true">↗</span><div class="brand-copy"><div class="brand-title"><b>Vienna <em>Next Bus</em></b><span class="app-version">App v4.2 · Duty-Test v12 · by VassiliX</span></div><small id="validity">Fahrplan …</small></div></div>
+  <div class="app-meta"><div class="clock" id="liveClock"><span class="status-dot"></span><b>--:--:--</b></div></div>
+</div></header>
+<main class="wrap">
+  <section class="card search-card" aria-label="Haltestelle suchen">
+    <label class="form-label" for="stopNo">Haltestelle · Stop number</label>
+    <div class="number-bar">
+      <div class="number-wrap">
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2z"/><path d="M9 3v16M15 5v16"/></svg>
+        <input id="stopNo" type="number" inputmode="numeric" min="1" max="99" pattern="[0-9]*" placeholder="47" autocomplete="off" aria-describedby="hint">
+      </div>
+      <button class="clear" id="clear" type="button" aria-label="Eingabe löschen">×</button>
+    </div>
+    <div class="suggest" id="hint"><span class="suggest-label">Schnellauswahl</span>
+      <button class="chip" type="button" data-stop="1">1</button><button class="chip" type="button" data-stop="2">2</button><button class="chip" type="button" data-stop="47">47</button><button class="chip" type="button" data-stop="12">12</button><button class="chip" type="button" data-stop="13">13</button><button class="chip" type="button" data-stop="30">30</button><button class="chip" type="button" data-stop="31">31</button><button class="chip" type="button" data-stop="10">10</button>
+    </div>
+    <div id="lineArea" class="line-area hidden">
+      <label class="form-label" id="lineLabel">Linie wählen · nächste Abfahrt</label>
+      <div class="lines" id="lineOptions" role="group" aria-labelledby="lineLabel"></div>
+    </div>
+    <div id="message" class="message hidden" role="status"></div>
+  </section>
+
+  <section class="card result hidden" id="result" aria-live="off" aria-atomic="true">
+    <div class="result-top"><span class="route-pill" id="routePill"></span><span class="stn-label" id="stationNumber" role="status" aria-label="Geschätzte Verkehrslage">On Time</span></div>
+    
+    <div class="stop-name" id="stopName"></div>
+    <div class="hero">
+      <div><div class="departure-caption">Nächste Abfahrt · Next departure</div><div class="big-time" id="nextTime">--:--</div></div>
+      <div class="cd-box"><div class="cd-live" id="cdLive"></div><div class="countdown" id="countdown"></div></div>
+    </div>
+    <div class="bar hidden" id="bar"><i id="barFill"></i></div>
+    <div class="next-block timeline-block">
+      <div class="timeline-head">
+        <div><div class="next-label">Alle Abfahrten</div><div class="timeline-meta" id="timelineMeta">Nach links oder rechts wischen</div></div>
+        <div class="timeline-tools">
+          <button type="button" class="timeline-nav" id="timelinePrev" aria-label="Frühere Abfahrten anzeigen">‹</button>
+          <button type="button" class="timeline-nav timeline-now" id="timelineNow" aria-label="Zur nächsten planmäßigen Abfahrt springen">Jetzt</button>
+          <button type="button" class="timeline-nav" id="timelineNext" aria-label="Spätere Abfahrten anzeigen">›</button>
+        </div>
+      </div>
+      <div class="departure-timeline" id="departureTimeline" tabindex="0" role="region" aria-label="Alle Abfahrten. Horizontal wischen für frühere und spätere Fahrten."></div>
+      <div class="timeline-help">← Frühere · Nächste hervorgehoben · Spätere →</div>
+    </div>
+    <div class="small-note" id="resultNote"></div>
+  </section>
+  <div class="tools">
+    <button class="link-button" id="testToggle" aria-controls="testPanel" aria-expanded="false">Andere Uhrzeit testen</button>
+    <button class="link-button" id="showAll" aria-controls="fullTimes" aria-expanded="false">Alle Abfahrten</button>
+  </div>
+  <section class="card test-panel hidden" id="testPanel">
+    <p>Vorschau für ein anderes Datum / eine andere Uhrzeit. Standardmäßig gilt die aktuelle Wiener Uhrzeit.</p>
+    <div class="test-inputs"><label>Datum<input type="date" id="testDate" min="2026-10-12" max="2026-11-01"></label><label>Uhrzeit<input type="time" id="testTime" step="60"></label><label>Vorschau-Tempo<select id="previewSpeed" style="background:#0b1620;color:#fff;border:1px solid #3a5167;border-radius:11px;min-height:44px;padding:8px 11px;font:inherit;color-scheme:dark"><option value="1" selected>1 Minute / Sekunde</option><option value="5">5 Minuten / Sekunde</option><option value="15">15 Minuten / Sekunde</option><option value="60">60 Minuten / Sekunde</option></select></label><button class="reset" id="previewPlay" type="button">Vorschau starten ▶</button><button class="reset" id="resetTime">Jetzt</button></div><p id="previewRunStatus" aria-live="polite" style="margin:10px 0 0;color:var(--sub);font-size:.78rem">Uhrzeit bleibt stehen, bis du „Vorschau starten“ drückst. Im Vorschaulauf werden Pausen- und Dienstende-Warnungen anhand der simulierten Zeit geprüft.</p>
+    <div id="previewAlertPanel" role="status" aria-live="polite" style="margin-top:12px;padding:12px 14px;border:1px solid #3a5167;border-radius:12px;background:rgba(255,255,255,.04);display:block"><b>Vorschau-Warnung</b><div id="previewAlertContent" style="margin-top:6px;color:var(--sub)">Öffne „Andere Uhrzeit testen“ und wähle eine Uhrzeit. Ereignisse in den nächsten 60 Minuten werden hier angezeigt.</div><button class="reset" type="button" id="previewAlertDemo" style="margin-top:10px">Beispielwarnung anzeigen</button></div>
+  </section>
+  <details id="fullTimes"><summary>Alle Zeiten dieser Haltestelle anzeigen</summary><div class="detail-body"><p id="fullTimesLabel">Haltestelle auswählen.</p><div class="all-list" id="allTimes"></div></div></details>
+  <!-- Original provider tracking map embedded in-frame, as requested -->
+  <section class="card track-card" aria-label="Originale Live-Tracking-Karte" id="busTracking">
+    <button type="button" class="track-toggle" id="loadTracker" aria-expanded="false" aria-controls="trackingPanel"><span>Originalkarte</span><span class="track-toggle-mark" aria-hidden="true">＋</span></button>
+    <div id="trackingPanel" class="hidden">
+      <div style="display:flex;justify-content:flex-end;margin:10px 16px 0"><a class="track-link" href="https://www.viennasightseeing.at/en/live-tracking-1/bus-tracking" target="_blank" rel="noopener noreferrer">In neuem Tab öffnen ↗</a></div>
+      <div class="track-tools" style="padding:0 16px;margin-top:4px">
+        <button type="button" id="trackerConsentMode" aria-pressed="false">Freigabe / Consent anzeigen</button>
+        <span class="track-foot" id="trackerConsentHint">Falls die Karte grau bleibt, hier die vollständige Originalseite öffnen und eine Kartenfreigabe ggf. selbst bestätigen.</span>
+      </div>
+      <div class="track-viewport" id="originalTrackerViewport">
+        <iframe id="originalTrackerFrame" title="Vienna Sightseeing — Original Live Bus Tracking" src="https://www.viennasightseeing.at/en/live-tracking-1/bus-tracking" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="geolocation"></iframe>
+      </div>
+      <div class="track-foot" style="margin:10px 16px 14px">Die Freigabe kann nicht automatisch erteilt werden. Wenn die Karte auch danach grau bleibt, öffne die Originalseite in einem neuen Tab und bestätige dort ggf. Cookies bzw. „Activate OpenStreetMap with one click“.</div>
+    </div>
+  </section>
+  <footer class="footer"><div class="tt-status" id="ttStatus"></div><button class="link-button" id="ttCheck" type="button">Nach Update suchen</button><p>Abfahrtszeiten plus vorsichtige GPS-Verkehrsschätzung; Ankunftszeiten werden nicht zur Statusberechnung verwendet. Keine garantierte Echtzeit-Pünktlichkeit. Alle Uhrzeiten in Wien (Europe/Vienna).</p><div class="footer-version">v4.2 · by VassiliX</div></footer><div class="toast" id="toast" role="status"></div>
+</main>
+<script>
+'use strict';
+// Timetable lives in timetable.json (see TT_URL). EMBEDDED is only the first-start / offline fallback.
+const EMBEDDED={"schema":1,"version":10,"published":"2026-10-28T17:54:00Z","title":"Vienna Sightseeing Fahrplan – Dienstplan","validFrom":"2026-10-12","validTo":"2026-11-01","timezone":"Europe/Vienna","lines":{"blue":{"de":"Blaue Linie","label":"Blue line","color":"#20acef"},"red":{"de":"Rote Linie","label":"Red line","color":"#f04f54"},"yellow":{"de":"Gelbe Linie","label":"Yellow line","color":"#f6c73f"},"green":{"de":"Grüne Linie","label":"Green line","color":"#4ed49b"}},"stops":{"1":{"blue":{"name":"Staatsoper","times":["09:10","09:30","09:54","10:14","10:40","11:10","11:34","11:58","12:22","12:46","13:10","13:34","13:58","14:22","14:46","15:10","15:34","15:58","16:22","16:46","17:15"],"codes":["D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]},"yellow":{"name":"Staatsoper","times":["09:20","09:45","10:07","10:30","10:50","11:15","11:37","12:00","12:22","12:45","13:07","13:30","13:52","14:15","14:37","15:00","15:15","15:45","16:00","16:15","16:45","17:15"],"codes":["S2","S1","S4","S3","S2","S5","S4","S6","S1","S5","S3","S2","S1","S4","S3","S2","S5","S4","S6","S1","S5","S3"],"note":"Abfahrt (nicht Ankunft)"}},"2":{"blue":{"name":"Kunsthistorisches Museum","times":["09:14","09:34","09:58","10:18","10:44","11:14","11:38","12:02","12:26","12:50","13:14","13:38","14:02","14:26","14:50","15:14","15:38","16:02","16:26","16:50","17:19"],"codes":["D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]},"red":{"name":"KHM / Kunsthistorisches Museum","times":["09:34","10:04","10:34","11:04","11:34","12:04","12:34","13:04","13:34","14:04","14:34","15:34","16:04","16:34","17:04"],"codes":["ABL","R1","S6","R1","D6","D5","D6","R1","D6","R1","D5","D5","R1","D5","R1"]},"yellow":{"name":"Kunsthistorisches Museum","times":["09:25","09:50","10:12","10:35","10:55","11:20","11:42","12:05","12:27","12:50","13:12","13:35","13:57","14:20","14:42","15:05","15:20","15:50","16:05","16:20","16:50","17:20"],"codes":["S2","S1","S4","S3","S2","S5","S4","S6","S1","S5","S3","S2","S1","S4","S3","S2","S5","S4","S6","S1","S5","S3"]}},"3":{"blue":{"name":"Mariahilfer Straße / MQ","times":["09:16","09:36","10:00","10:20","10:46","11:16","11:40","12:04","12:28","12:52","13:16","13:40","14:04","14:28","14:52","15:16","15:40","16:04","16:28","16:52","17:21"],"codes":["D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]},"red":{"name":"Mariahilfer Straße / MQ","times":["09:36","10:06","10:36","11:06","11:36","12:06","12:36","13:06","13:36","14:06","14:36","15:36","16:06","16:36","17:06"],"codes":["ABL","R1","S6","R1","D6","D5","D6","R1","D6","R1","D5","D5","R1","D5","R1"]}},"4":{"red":{"name":"Naschmarkt / Johann Strauss-Museum","times":["09:52","10:22","10:52","11:22","11:52","12:22","12:52","13:22","13:52","14:22","14:52","15:22","16:22","16:52","17:22","17:52"],"codes":["R1","ABL","R1","S6","R1","D6","D5","D6","R1","D6","R1","D5","D5","R1","D5","R1"]}},"5":{"blue":{"name":"Burgtheater / Rathaus","times":["09:22","09:42","10:06","10:26","10:52","11:22","11:46","12:10","12:34","12:58","13:22","13:46","14:10","14:34","14:58","15:22","15:46","16:10","16:34","16:58","17:27"],"codes":["D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]},"red":{"name":"Burgtheater / Rathaus","times":["09:41","10:11","10:41","11:11","11:41","12:11","12:41","13:11","13:41","14:11","14:41","15:41","16:11","16:41","17:11"],"codes":["ABL","R1","S6","R1","D6","D5","D6","R1","D6","R1","D5","D5","R1","D5","R1"]}},"6":{"blue":{"name":"Liebenberg Denkmal","times":["09:24","09:44","10:08","10:28","10:54","11:24","11:48","12:12","12:36","13:00","13:24","13:48","14:12","14:36","15:00","15:24","15:48","16:12","16:36","17:00","17:29"],"codes":["D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]}},"7":{"blue":{"name":"Liechtensteinstraße","times":["09:28","09:48","10:12","10:32","10:58","11:28","11:52","12:16","12:40","13:04","13:28","13:52","14:16","14:40","15:04","15:28","15:52","16:16","16:40","17:04","17:33"],"codes":["D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]}},"9":{"blue":{"name":"Taborstraße","times":["09:48","10:22","10:48","11:08","11:32","11:52","12:18","12:48","13:12","13:36","14:00","14:24","14:48","15:12","15:36","16:00","16:24","16:48","17:12","17:36","18:00","18:24","18:45"],"codes":["D1/ABL1","D3","D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]}},"10":{"blue":{"name":"Schwedenbrücke","times":["09:35","09:52","10:26","10:52","11:12","11:36","11:56","12:22","12:52","13:16","13:40","14:04","14:28","14:52","15:16","15:40","16:04","16:28","16:52","17:16","17:40","18:04","18:28","18:53"],"codes":["D5","D1/ABL1","D3","D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]}},"11":{"blue":{"name":"Morzinplatz","times":["09:44","10:04","10:28","10:48","11:14","11:44","12:08","12:32","12:56","13:20","13:44","14:08","14:32","14:56","15:20","15:44","16:08","16:32","16:56","17:20","17:49"],"codes":["D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]}},"12":{"blue":{"name":"Schwedenplatz / Boot","times":["09:46","10:06","10:30","10:50","11:16","11:46","12:10","12:34","12:58","13:22","13:46","14:10","14:34","14:58","15:22","15:46","16:10","16:34","16:58","17:22","17:51"],"codes":["D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]},"red":{"name":"Schwedenplatz / Boot","times":["09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","16:00","16:30","17:00","17:30"],"codes":["R1","ABL","R1","S6","R1","D6","D5","D6","R1","D6","R1","D5","D5","R1","D5","R1"]}},"13":{"blue":{"name":"MAK / Wien-Mitte","times":["09:20","09:44","10:04","10:30","11:00","11:24","11:48","12:12","12:36","13:00","13:24","13:48","14:12","14:36","15:00","15:24","15:48","16:12","16:36","17:00","17:24","17:48","18:12","18:36","19:02"],"codes":["D4","D5","D1/ABL1","D3","D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"],"note":"Abfahrten (nicht Ankunft)"},"red":{"name":"MAK / Wien-Mitte","times":["09:38","10:08","10:38","11:08","11:38","12:08","12:38","13:08","13:38","14:08","14:38","15:08","16:08","16:38","17:08","17:38"],"codes":["R1","ABL","R1","S6","R1","D6","D5","D6","R1","D6","R1","D5","D5","R1","D5","R1"]}},"14":{"blue":{"name":"Hotel Hilton / Stadtpark","times":["09:22","09:46","10:06","10:32","11:02","11:26","11:50","12:14","12:38","13:02","13:26","13:50","14:14","14:38","15:02","15:26","15:50","16:14","16:38","17:02","17:26","17:50","18:14","18:38","19:04"],"codes":["D4","D5","D1/ABL1","D3","D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]},"red":{"name":"Hotel Hilton / Stadtpark","times":["09:39","10:09","10:39","11:09","11:39","12:09","12:39","13:09","13:39","14:09","14:39","15:09","16:09","16:39","17:09","17:39"],"codes":["R1","ABL","R1","S6","R1","D6","D5","D6","R1","D6","R1","D5","D5","R1","D5","R1"]}},"15":{"blue":{"name":"Kursalon","times":["09:24","09:48","10:08","10:34","11:04","11:28","11:52","12:16","12:40","13:04","13:28","13:52","14:16","14:40","15:04","15:28","15:52","16:16","16:40","17:04","17:28","17:52","18:16","18:40","19:06"],"codes":["D4","D5","D1/ABL1","D3","D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]},"red":{"name":"Kursalon","times":["09:41","10:11","10:41","11:11","11:41","12:11","12:41","13:11","13:41","14:11","14:41","15:11","16:11","16:41","17:11","17:41"],"codes":["R1","ABL","R1","S6","R1","D6","D5","D6","R1","D6","R1","D5","D5","R1","D5","R1"]}},"16":{"red":{"name":"Karlsplatz","times":["09:49","10:19","10:49","11:19","11:49","12:19","12:49","13:19","13:49","14:19","14:49","15:19","16:19","16:49","17:19","17:49"],"codes":["R1","ABL","R1","S6","R1","D6","D5","D6","R1","D6","R1","D5","D5","R1","D5","R1"],"weekendOnly":true,"note":"Nur am Wochenende"}},"17":{"blue":{"name":"Kunst Haus / Hundertwasser","times":["09:50","10:10","10:34","10:54","11:20","11:50","12:14","12:38","13:02","13:26","13:50","14:14","14:38","15:02","15:26","15:50","16:14","16:38","17:02","17:26","17:55"],"codes":["D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]}},"18":{"blue":{"name":"Prater / Riesenrad","times":["09:30","09:35","10:01","10:21","10:45","11:05","11:31","12:01","12:25","12:49","13:13","13:37","14:01","14:25","14:49","15:13","15:37","16:01","16:25","16:49","17:13","17:37","18:06"],"codes":["D1/ABL1","D3","D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]}},"20":{"blue":{"name":"DDSG / Pier 6","times":["09:45","10:11","10:31","10:55","11:15","11:41","12:11","12:35","12:59","13:23","13:47","14:11","14:35","14:59","15:23","15:47","16:11","16:35","16:59","17:23","17:47","18:16"],"codes":["D3","D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]}},"21":{"blue":{"name":"Donauturm","times":["09:57","10:23","10:43","11:07","11:27","11:53","12:23","12:47","13:11","13:35","13:59","14:23","14:47","15:11","15:35","15:59","16:23","16:47","17:11","17:35","17:59","18:28"],"codes":["D3","D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]}},"22":{"blue":{"name":"Alte Donau","times":["10:02","10:28","10:48","11:12","11:32","11:58","12:28","12:52","13:16","13:40","14:04","14:28","14:52","15:16","15:40","16:04","16:28","16:52","17:16","17:40","18:04","18:33"],"codes":["D3","D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]}},"23":{"blue":{"name":"UNO City","times":["10:05","10:31","10:51","11:15","11:35","12:01","12:31","12:55","13:19","13:43","14:07","14:31","14:55","15:19","15:43","16:07","16:31","16:55","17:19","17:43","18:07","18:36"],"codes":["D3","D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]}},"24":{"blue":{"name":"Reichsbrücke","times":["10:07","10:33","10:53","11:17","11:37","12:03","12:33","12:57","13:21","13:45","14:09","14:33","14:57","15:21","15:45","16:09","16:33","16:57","17:21","17:45","18:09","18:38"],"codes":["D3","D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]}},"25":{"blue":{"name":"Praterstern","times":["09:40","10:14","10:40","11:00","11:24","11:44","12:10","12:40","13:04","13:28","13:52","14:16","14:40","15:04","15:28","15:52","16:16","16:40","17:04","17:28","17:52","18:16","18:38"],"codes":["D1/ABL1","D3","D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]}},"29":{"yellow":{"name":"Westbahnhof / Shopping","times":["09:40","10:05","10:27","10:50","11:10","11:35","11:57","12:20","12:42","13:05","13:27","13:50","14:12","14:35","14:57","15:20","15:35","16:05","16:20","16:35","17:05","17:35"],"codes":["S2","S1","S4","S3","S2","S5","S4","S6","S1","S5","S3","S2","S1","S4","S3","S2","S5","S4","S6","S1","S5","S3"]}},"30":{"yellow":{"name":"Schloss Schönbrunn / Zoo","times":["09:55","10:20","10:42","11:05","11:25","11:50","12:12","12:35","12:57","13:20","13:42","14:05","14:27","14:50","15:12","15:35","15:50","16:20","16:35","16:50","17:20","17:50"],"codes":["S2","S1","S4","S3","S2","S5","S4","S6","S1","S5","S3","S2","S1","S4","S3","S2","S5","S4","S6","S1","S5","S3"],"note":"Abfahrt (nicht Ankunft)"}},"31":{"yellow":{"name":"Hauptbahnhof","times":["09:15","09:45","10:00","10:19","10:44","10:50","11:06","11:29","11:49","12:14","12:36","12:59","13:21","13:44","14:06","14:29","14:51","15:14","15:36","15:59","16:14","16:44","16:59","17:14","17:44","18:14"],"codes":["S1","S4","S3","S2","S1","S5","S4","S3","S2","S5","S4","S6","S1","S5","S3","S2","S1","S4","S3","S2","S5","S4","S6","S1","S5","S3"],"note":"Abfahrt (nicht Ankunft)"}},"33":{"yellow":{"name":"Belvedere 21 / Arsenal","times":["09:22","09:52","10:07","10:26","10:51","10:57","11:13","11:36","11:56","12:21","12:43","13:06","13:28","13:51","14:13","14:36","14:58","15:21","15:43","16:06","16:21","16:51","17:06","17:21","17:51","18:21"],"codes":["S1","S4","S3","S2","S1","S5","S4","S3","S2","S5","S4","S6","S1","S5","S3","S2","S1","S4","S3","S2","S5","S4","S6","S1","S5","S3"]}},"34":{"yellow":{"name":"Schloss Belvedere","times":["09:26","09:56","10:11","10:30","10:55","11:01","11:17","11:40","12:00","12:25","12:47","13:10","13:32","13:55","14:17","14:40","15:02","15:25","15:47","16:10","16:25","16:55","17:10","17:25","17:55","18:25"],"codes":["S1","S4","S3","S2","S1","S5","S4","S3","S2","S5","S4","S6","S1","S5","S3","S2","S1","S4","S3","S2","S5","S4","S6","S1","S5","S3"]}},"35":{"yellow":{"name":"Schwarzenbergplatz","times":["09:29","09:59","10:14","10:33","10:58","11:04","11:20","11:43","12:03","12:28","12:50","13:13","13:35","13:58","14:20","14:43","15:05","15:28","15:50","16:13","16:28","16:58","17:13","17:28","17:58","18:28"],"codes":["S1","S4","S3","S2","S1","S5","S4","S3","S2","S5","S4","S6","S1","S5","S3","S2","S1","S4","S3","S2","S5","S4","S6","S1","S5","S3"]},"green":{"name":"Palais Liechtenstein","times":["10:52","11:52","12:52","13:52","15:07","16:07"],"codes":["G1","G1","G1","S6","G1","G1"]}},"36":{"green":{"name":"Grinzing / Sandgasse","times":["11:06","12:06","13:06","14:06","15:21","16:21"],"codes":["G1","G1","G1","S6","G1","G1"]}},"37":{"green":{"name":"Grinzing / Cobenzlgasse","times":["11:09","12:09","13:09","14:09","15:24","16:24"],"codes":["G1","G1","G1","S6","G1","G1"]}},"39":{"green":{"name":"Grinzing / Himmelstraße","times":["11:22","12:22","13:22","14:22","15:37","16:37"],"codes":["G1","G1","G1","S6","G1","G1"]}},"40":{"green":{"name":"Cobenzl / Panoramaview","times":["11:15","12:15","13:15","14:15","15:30","16:30"],"codes":["G1","G1","G1","S6","G1","G1"]}},"45":{"green":{"name":"House of Strauss / Schlumberger","times":["10:58","11:58","12:58","13:58","15:13","16:13"],"codes":["G1","G1","G1","S6","G1","G1"]}},"47":{"blue":{"name":"Votivkirche","times":["09:34","09:54","10:18","10:38","11:04","11:34","11:58","12:22","12:46","13:10","13:34","13:58","14:22","14:46","15:10","15:34","15:58","16:22","16:46","17:10","17:39"],"codes":["D2/D1","D4","D5","ABL1/D2","D3/ABL1","D1","D4/D3","ABL","D2","ABL1/D4","D1/ABL1","D3","ABL","D2/D1","D4","ABL1/D2","D3","D6","D1","D4","D2"]},"red":{"name":"Votivkirche","times":["09:52","10:22","10:52","11:22","11:52","12:22","12:52","13:22","13:52","14:22","14:52","15:52","16:22","16:52","17:22"],"codes":["ABL","R1","S6","R1","D6","D5","D6","R1","D6","R1","D5","D5","R1","D5","R1"]},"green":{"name":"Votivkirche","times":["10:45","11:45","12:45","13:45","15:00","16:00"],"codes":["G1","G1","G1","S6","G1","G1"]}},"48":{"red":{"name":"Rathausplatz 4","times":["09:45","10:15","10:45","11:15","11:45","12:15","12:45","13:15","13:45","14:15","14:45","15:45","16:15","16:45","17:15"],"codes":["ABL","R1","S6","R1","D6","D5","D6","R1","D6","R1","D5","D5","R1","D5","R1"]}}},"dutyRules":{"P":{"label":"PAUSE","meaning":"Scheduled vehicle break; do not treat the gap as a missed trip."},"P/B":{"label":"PAUSE","meaning":"Scheduled break marker as printed in the plan."},"Y/G":{"label":"FARBWECHSEL","meaning":"Same vehicle changes between yellow and green service; track it across both colours."},"G/Y":{"label":"FARBWECHSEL","meaning":"Same vehicle changes between green and yellow service; track it across both colours."},"ENDE":{"label":"OFF DUTY","meaning":"Vehicle duty ends; do not expect further departures from this duty."},"P/Y":{"label":"PAUSE + FARBWECHSEL","meaning":"Pause plus yellow-line change marker as printed in the red-line terminal row. Treat the same vehicle as changing to yellow service only when the duty column confirms it."},"E":{"label":"UNCLASSIFIED MARKER","meaning":"The source prints E, not ENDE. Do not treat E as off duty without a legend; later times continue in the same duty column."},"B/R":{"label":"FARBWECHSEL","meaning":"Blue-to-red line change marker printed in the blue-line MAK/Wien-Mitte arrival row; same duty continues across the line-colour change."}},"planEvents":[{"line":"blue","stop":13,"stopName":"MAK/Wien-Mitte (Ankunft)","time":"10:00","marker":"P","type":"pause","vehicleCode":"D1","sourceNote":"P annotation in the blue-line arrival row; vehicle code read from the same duty column."},{"line":"blue","stop":13,"stopName":"MAK/Wien-Mitte (Ankunft)","time":"11:00","marker":"P","type":"pause","vehicleCode":"D2","sourceNote":"P annotation in the blue-line arrival row; vehicle code read from the same duty column."},{"line":"blue","stop":13,"stopName":"MAK/Wien-Mitte (Ankunft)","time":"11:48","marker":"B/R","type":"colour_change","vehicleCode":"D5","sourceNote":"B/R is printed beside 11:48 in the blue-line MAK/Wien-Mitte arrival row; interpreted as a blue-to-red colour change."},{"line":"blue","stop":1,"stopName":"Staatsoper (Ankunft)","time":"11:58","marker":"B/R","type":"colour_change","vehicleCode":"D5","dutyColumn":7,"timePrinted":true,"sourceNote":"B/R is printed in the D5 duty column at Staatsoper (Ankunft) at 11:58. The same column carries B/R at MAK/Wien-Mitte at 11:48; this event identifies the terminal arrival where the line change can be acted on."},{"line":"blue","stop":13,"stopName":"MAK/Wien-Mitte (Ankunft)","time":"12:04","marker":"P","type":"pause","vehicleCode":"ABL1","sourceNote":"P annotation in the blue-line arrival row; vehicle code read from the same duty column."},{"line":"blue","stop":13,"stopName":"MAK/Wien-Mitte (Ankunft)","time":"12:28","marker":"P","type":"pause","vehicleCode":"D3","sourceNote":"P annotation in the blue-line arrival row; vehicle code read from the same duty column."},{"line":"blue","stop":13,"stopName":"MAK/Wien-Mitte (Ankunft)","time":"13:24","marker":"P","type":"pause","vehicleCode":"D4","sourceNote":"P annotation in the blue-line arrival row; vehicle code read from the same duty column."},{"line":"blue","stop":13,"stopName":"MAK/Wien-Mitte (Ankunft)","time":"14:36","marker":"P","type":"pause","vehicleCode":"ABL1","sourceNote":"P annotation in the blue-line arrival row; vehicle code read from the same duty column."},{"line":"blue","stop":13,"stopName":"MAK/Wien-Mitte (Ankunft)","time":"15:00","marker":"P","type":"pause","vehicleCode":"D1","sourceNote":"P annotation in the blue-line arrival row; vehicle code read from the same duty column."},{"line":"blue","stop":1,"stopName":"Staatsoper (Ankunft)","time":"15:58","marker":"ENDE","type":"end_duty","vehicleCode":"ABL","sourceNote":"ENDE is printed in blue-line duty column 18 at Staatsoper (Ankunft) without a clock time. The matching Kursalon time is 15:52; the repeated Kursalon-to-Staatsoper segment is 6 minutes, so 15:58 is an inferred terminal arrival.","dutyColumn":18,"timePrinted":false,"timeInferred":true,"precedingStop":15,"precedingStopName":"Kursalon","precedingTime":"15:52"},{"line":"blue","stop":13,"stopName":"MAK/Wien-Mitte (Ankunft)","time":"16:12","marker":"P","type":"pause","vehicleCode":"D2","sourceNote":"P annotation in the blue-line arrival row; vehicle code read from the same duty column."},{"line":"blue","stop":1,"stopName":"Staatsoper (Ankunft)","time":"17:34","marker":"ENDE","type":"end_duty","vehicleCode":"D3","sourceNote":"ENDE is printed in blue-line duty column 23 at Staatsoper (Ankunft) without a clock time. The matching Kursalon time is 17:28; the repeated Kursalon-to-Staatsoper segment is 6 minutes, so 17:34 is an inferred terminal arrival.","dutyColumn":23,"timePrinted":false,"timeInferred":true,"precedingStop":15,"precedingStopName":"Kursalon","precedingTime":"17:28"},{"line":"blue","stop":1,"stopName":"Staatsoper (Ankunft)","time":"17:34","marker":"ENDE","type":"end_duty","vehicleCode":"D3","sourceNote":"ENDE is printed in blue-line duty column 31 at Staatsoper (Ankunft) without a clock time. The matching Kursalon time is 17:28; the repeated Kursalon-to-Staatsoper segment is 6 minutes, so 17:34 is an inferred terminal arrival.","dutyColumn":31,"timePrinted":false,"timeInferred":true,"precedingStop":15,"precedingStopName":"Kursalon","precedingTime":"17:28"},{"line":"blue","stop":1,"stopName":"Staatsoper (Ankunft)","time":"17:58","marker":"ENDE","type":"end_duty","vehicleCode":"D6","sourceNote":"ENDE is printed in blue-line duty column 24 at Staatsoper (Ankunft) without a clock time. The matching Kursalon time is 17:52; the repeated Kursalon-to-Staatsoper segment is 6 minutes, so 17:58 is an inferred terminal arrival.","dutyColumn":24,"timePrinted":false,"timeInferred":true,"precedingStop":15,"precedingStopName":"Kursalon","precedingTime":"17:52"},{"line":"blue","stop":1,"stopName":"Staatsoper (Ankunft)","time":"17:58","marker":"ENDE","type":"end_duty","vehicleCode":"D6","sourceNote":"ENDE is printed in blue-line duty column 32 at Staatsoper (Ankunft) without a clock time. The matching Kursalon time is 17:52; the repeated Kursalon-to-Staatsoper segment is 6 minutes, so 17:58 is an inferred terminal arrival.","dutyColumn":32,"timePrinted":false,"timeInferred":true,"precedingStop":15,"precedingStopName":"Kursalon","precedingTime":"17:52"},{"line":"blue","stop":1,"stopName":"Staatsoper (Ankunft)","time":"18:22","marker":"ENDE","type":"end_duty","vehicleCode":"D1","sourceNote":"ENDE is printed in blue-line duty column 25 at Staatsoper (Ankunft) without a clock time. The matching Kursalon time is 18:16; the repeated Kursalon-to-Staatsoper segment is 6 minutes, so 18:22 is an inferred terminal arrival.","dutyColumn":25,"timePrinted":false,"timeInferred":true,"precedingStop":15,"precedingStopName":"Kursalon","precedingTime":"18:16"},{"line":"blue","stop":1,"stopName":"Staatsoper (Ankunft)","time":"18:22","marker":"ENDE","type":"end_duty","vehicleCode":"D1","sourceNote":"ENDE is printed in blue-line duty column 33 at Staatsoper (Ankunft) without a clock time. The matching Kursalon time is 18:16; the repeated Kursalon-to-Staatsoper segment is 6 minutes, so 18:22 is an inferred terminal arrival.","dutyColumn":33,"timePrinted":false,"timeInferred":true,"precedingStop":15,"precedingStopName":"Kursalon","precedingTime":"18:16"},{"line":"blue","stop":1,"stopName":"Staatsoper (Ankunft)","time":"18:46","marker":"ENDE","type":"end_duty","vehicleCode":"D4","sourceNote":"ENDE is printed in blue-line duty column 26 at Staatsoper (Ankunft) without a clock time. The matching Kursalon time is 18:40; the repeated Kursalon-to-Staatsoper segment is 6 minutes, so 18:46 is an inferred terminal arrival.","dutyColumn":26,"timePrinted":false,"timeInferred":true,"precedingStop":15,"precedingStopName":"Kursalon","precedingTime":"18:40"},{"line":"blue","stop":1,"stopName":"Staatsoper (Ankunft)","time":"18:46","marker":"ENDE","type":"end_duty","vehicleCode":"D4","sourceNote":"ENDE is printed in blue-line duty column 34 at Staatsoper (Ankunft) without a clock time. The matching Kursalon time is 18:40; the repeated Kursalon-to-Staatsoper segment is 6 minutes, so 18:46 is an inferred terminal arrival.","dutyColumn":34,"timePrinted":false,"timeInferred":true,"precedingStop":15,"precedingStopName":"Kursalon","precedingTime":"18:40"},{"line":"blue","stop":1,"stopName":"Staatsoper (Ankunft)","time":"19:10","marker":"ENDE","type":"end_duty","vehicleCode":"D2","sourceNote":"ENDE is printed in blue-line duty column 27 at Staatsoper (Ankunft) without a clock time. The matching Kursalon time is 19:04; the repeated Kursalon-to-Staatsoper segment is 6 minutes, so 19:10 is an inferred terminal arrival.","dutyColumn":27,"timePrinted":false,"timeInferred":true,"precedingStop":15,"precedingStopName":"Kursalon","precedingTime":"19:04"},{"line":"blue","stop":1,"stopName":"Staatsoper (Ankunft)","time":"19:10","marker":"ENDE","type":"end_duty","vehicleCode":"D2","sourceNote":"ENDE is printed in blue-line duty column 35 at Staatsoper (Ankunft) without a clock time. The matching Kursalon time is 19:04; the repeated Kursalon-to-Staatsoper segment is 6 minutes, so 19:10 is an inferred terminal arrival.","dutyColumn":35,"timePrinted":false,"timeInferred":true,"precedingStop":15,"precedingStopName":"Kursalon","precedingTime":"19:04"},{"line":"red","stop":2,"stopName":"KHM (Ankunft)","time":"10:30","marker":"P/B","type":"pause_bus_change","vehicleCode":"ABL","sourceNote":"Marker/time aligned to the same column in the red-line KHM arrival row."},{"line":"red","stop":2,"stopName":"KHM (Ankunft)","time":"11:30","marker":"P/Y","type":"pause_colour_change","vehicleCode":"S6","sourceNote":"P/Y is printed in the S6 column at KHM at 11:30. The yellow timetable shows S6 at Staatsoper at 12:00, matching the stated pause/yellow transition.","continuation":{"line":"yellow","stop":1,"stopName":"Staatsoper","time":"12:00","vehicleCode":"S6","description":"derselbe S6 fährt danach auf der gelben Linie weiter"}},{"line":"red","stop":2,"stopName":"KHM (Ankunft)","time":"12:00","marker":"P","type":"pause","vehicleCode":"R1","sourceNote":"Marker/time aligned to the same column in the red-line KHM arrival row."},{"line":"red","stop":2,"stopName":"KHM (Ankunft)","time":"13:00","marker":"P","type":"pause","vehicleCode":"D5","sourceNote":"Marker/time aligned to the same column in the red-line KHM arrival row. Next listed red-line service at the same station: R1 at 13:04.","continuation":{"line":"red","stop":2,"stopName":"KHM / Kunsthistorisches Museum","time":"13:04","vehicleCode":"R1","description":"Nächster roter Bus R1"}},{"line":"red","stop":2,"stopName":"KHM (Ankunft)","time":"14:30","marker":"P/B","type":"pause_bus_change","vehicleCode":"D6","sourceNote":"Marker/time aligned to the same column in the red-line KHM arrival row."},{"line":"red","stop":2,"stopName":"KHM (Ankunft)","time":"15:00","marker":"P","type":"pause","vehicleCode":"R1","sourceNote":"Marker/time aligned to the same column in the red-line KHM arrival row."},{"line":"red","stop":2,"stopName":"KHM (Ankunft)","time":"17:30","marker":"ENDE","type":"end_duty","vehicleCode":"D5","sourceNote":"ENDE is printed in the D5 column at KHM (Ankunft), without a clock time. The same D5 column shows 17:22 at Naschmarkt; the timetable segment is 8 minutes, giving an inferred KHM arrival at 17:30.","precedingStop":4,"precedingStopName":"Naschmarkt/Johann Strauss Museum","precedingTime":"17:22","timePrinted":false,"timeInferred":true},{"line":"yellow","stop":1,"stopName":"Staatsoper (Ankunft)","time":"11:05","marker":"P","type":"pause","vehicleCode":"S1","sourceNote":"The bottom Staatsoper (Ankunft) row prints 11:05:P in the S1 duty column."},{"line":"yellow","stop":1,"stopName":"Staatsoper (Ankunft)","time":"11:50","marker":"P","type":"pause","vehicleCode":"S3","sourceNote":"Marker/time aligned to the same column in the yellow-line Staatsoper arrival row."},{"line":"yellow","stop":1,"stopName":"Staatsoper (Ankunft)","time":"12:10","marker":"P","type":"pause","vehicleCode":"S2","sourceNote":"Marker/time aligned to the same column in the yellow-line Staatsoper arrival row."},{"line":"yellow","stop":1,"stopName":"Staatsoper (Ankunft)","time":"12:57","marker":"P","type":"pause","vehicleCode":"S4","sourceNote":"Marker/time aligned to the same column in the yellow-line Staatsoper arrival row."},{"line":"yellow","stop":1,"stopName":"Staatsoper (Ankunft)","time":"13:20","marker":"Y/G","type":"colour_change","vehicleCode":"S6","sourceNote":"The source prints Y/G in the S6 column at Staatsoper at 13:20: the same vehicle changes from yellow to green, not off duty. The green timetable identifies S6 at Votivkirche (Station 47) at 13:45.","continuation":{"line":"green","stop":47,"stopName":"Votivkirche (Station 47)","time":"13:45","vehicleCode":"S6","description":"Same vehicle continues as the green line."}},{"line":"yellow","stop":1,"stopName":"Staatsoper (Ankunft)","time":"14:05","marker":"P","type":"pause","vehicleCode":"S5","sourceNote":"Marker/time aligned to the same column in the yellow-line Staatsoper arrival row."},{"line":"yellow","stop":1,"stopName":"Staatsoper (Ankunft)","time":"15:12","marker":"P","type":"pause","vehicleCode":"S1","sourceNote":"Marker/time aligned to the same column in the yellow-line Staatsoper arrival row."},{"line":"yellow","stop":1,"stopName":"Staatsoper (Ankunft)","time":"15:57","marker":"P","type":"pause","vehicleCode":"S3","sourceNote":"Marker/time aligned to the same column in the yellow-line Staatsoper arrival row."},{"line":"yellow","stop":1,"stopName":"Staatsoper (Ankunft)","time":"16:20","marker":"ENDE","type":"end_duty","vehicleCode":"S2","sourceNote":"ENDE is printed in the S2 duty column at Staatsoper (Ankunft) without a clock time. The matching Schwarzenbergplatz time is 16:13; the repeated Schwarzenbergplatz-to-Staatsoper segment is 7 minutes, so 16:20 is an inferred terminal arrival.","precedingStop":35,"precedingStopName":"Schwarzenberg Platz","precedingTime":"16:13","timePrinted":false,"timeInferred":true},{"line":"yellow","stop":1,"stopName":"Staatsoper (Ankunft)","time":"17:05","marker":"ENDE","type":"end_duty","vehicleCode":"S4","sourceNote":"ENDE is printed in the S4 duty column at Staatsoper (Ankunft) without a clock time. The matching Schwarzenbergplatz time is 16:58; the repeated Schwarzenbergplatz-to-Staatsoper segment is 7 minutes, so 17:05 is an inferred terminal arrival.","precedingStop":35,"precedingStopName":"Schwarzenberg Platz","precedingTime":"16:58","timePrinted":false,"timeInferred":true},{"line":"yellow","stop":1,"stopName":"Staatsoper (Ankunft)","time":"17:20","marker":"ENDE","type":"end_duty","vehicleCode":"S6","sourceNote":"ENDE is printed in the S6 duty column at Staatsoper (Ankunft) without a clock time. The matching Schwarzenbergplatz time is 17:13; the repeated Schwarzenbergplatz-to-Staatsoper segment is 7 minutes, so 17:20 is an inferred terminal arrival.","precedingStop":35,"precedingStopName":"Schwarzenberg Platz","precedingTime":"17:13","timePrinted":false,"timeInferred":true},{"line":"yellow","stop":1,"stopName":"Staatsoper (Ankunft)","time":"17:35","marker":"ENDE","type":"end_duty","vehicleCode":"S1","sourceNote":"ENDE is printed in the S1 duty column at Staatsoper (Ankunft) without a clock time. The matching Schwarzenbergplatz time is 17:28; the repeated Schwarzenbergplatz-to-Staatsoper segment is 7 minutes, so 17:35 is an inferred terminal arrival.","precedingStop":35,"precedingStopName":"Schwarzenberg Platz","precedingTime":"17:28","timePrinted":false,"timeInferred":true},{"line":"yellow","stop":1,"stopName":"Staatsoper (Ankunft)","time":"18:05","marker":"ENDE","type":"end_duty","vehicleCode":"S5","sourceNote":"ENDE is printed in the S5 duty column at Staatsoper (Ankunft) without a clock time. The matching Schwarzenbergplatz time is 17:58; the repeated Schwarzenbergplatz-to-Staatsoper segment is 7 minutes, so 18:05 is an inferred terminal arrival.","precedingStop":35,"precedingStopName":"Schwarzenberg Platz","precedingTime":"17:58","timePrinted":false,"timeInferred":true},{"line":"yellow","stop":1,"stopName":"Staatsoper (Ankunft)","time":"18:35","marker":"ENDE","type":"end_duty","vehicleCode":"S3","sourceNote":"ENDE is printed in the S3 duty column at Staatsoper (Ankunft) without a clock time. The matching Schwarzenbergplatz time is 18:28; the repeated Schwarzenbergplatz-to-Staatsoper segment is 7 minutes, so 18:35 is an inferred terminal arrival.","precedingStop":35,"precedingStopName":"Schwarzenberg Platz","precedingTime":"18:28","timePrinted":false,"timeInferred":true},{"line":"green","stop":47,"stopName":"Votivkirche (Ankunft)","time":"13:45","marker":"P","type":"pause","vehicleCode":"G1","sourceNote":"P is printed at 13:45 in the third green-line duty column, headed G1. The S6 column at 13:45 is a scheduled arrival/departure, not a pause.","continuationFrom":{"line":"yellow","stop":1,"stopName":"Staatsoper (Station 1)","time":"13:20","vehicleCode":"S6"}},{"line":"green","stop":47,"stopName":"Votivkirche (Ankunft)","time":"14:45","marker":"P","type":"pause","vehicleCode":"S6","sourceNote":"P is printed at 14:45 in the fourth green-line duty column, headed S6. This is the same S6 duty that changes from yellow to green at Staatsoper at 13:20."},{"line":"green","stop":47,"stopName":"Votivkirche (Ankunft)","time":"17:00","marker":"ENDE","type":"end_duty","vehicleCode":"G1","timePrinted":false,"timeInferred":true,"precedingStop":39,"precedingStopName":"Grinzing/Himmelstraße","precedingTime":"16:37","sourceNote":"ENDE is printed in the final green-line duty column headed G1 at Votivkirche (Ankunft), without a clock time. The same column shows 16:37 at stop 39; the repeated stop-39-to-Votivkirche segment is 23 minutes, giving an inferred terminal arrival at 17:00."}],"planEventsNote":"Version 9 audit against the supplied timetable image. Pause and line-change markers were checked against their displayed row and duty column. Printed ENDE cells without a clock time now have explicitly labelled estimated terminal-arrival times derived from the same column’s preceding stop plus the repeated route segment duration. “E” at blue MAK/Wien-Mitte is retained separately as an unclassified annotation, not treated as ENDE. The S6 transition yellow 13:20 → green at Station 47 13:45 is linked, followed by its pause at green Station 47 14:45. Original departure-time arrays are preserved from version 5.","unclassifiedAnnotations":[{"line":"blue","stop":13,"stopName":"MAK/Wien-Mitte (Ankunft)","time":"17:00","marker":"E","vehicleCode":"ABL1","status":"not_treated_as_duty_end","reason":"The source prints “E”, not “ENDE”. The same duty column continues with later scheduled times; without a legend, interpreting E as off duty would be unsupported."}],"audit":{"source":"Busfahrplan Midesason 2026 A Plan, 12.10–01.11","auditDate":"2026-10-26","departureArraysComparedWithVersion5":"identical","checks":[{"item":"Blue-line P markers at MAK/Wien-Mitte","status":"checked","note":"Times/codes checked against the annotations printed in that row."},{"item":"Blue-to-red B/R","status":"checked_with_note","note":"Marker is printed at MAK 11:48 and Staatsoper arrival 11:58 in the same D5 duty column; both are represented."},{"item":"Blue terminal ENDE","status":"checked_inferred_times","note":"ENDE cells have no printed times; estimates use the repeated 6-minute Kursalon-to-Staatsoper segment."},{"item":"Red-line pause markers and D5 ENDE","status":"checked_inferred_time","note":"P/P-B/P-Y positions match the red terminal row; D5 ENDE estimated at 17:30 from 17:22 at stop 4 + 8 minutes."},{"item":"Green-line pauses and ENDE","status":"checked_inferred_times","note":"G1 pause 13:45, S6 pause 14:45, G1 ENDE estimated 17:00 from 16:37 at stop 39 + the repeated 23-minute terminal segment."},{"item":"Yellow-line pause/colour-change markers","status":"checked","note":"11:05 P, 11:50 P, 12:10 P, 12:57 P, 13:20 Y/G, 14:05 P, 15:12 P, 15:57 P; codes follow the aligned duty-column headers."},{"item":"Yellow terminal ENDE","status":"checked_inferred_times","note":"Six ENDE cells are estimated at previous stop 35 time + 7 minutes."}],"caution":"Times in ENDE cells are estimates, not printed clock times. The lone blue “E” marker is not interpreted because the source has no legend for it."}};
+let STOPS={},LINE_INFO={},START='',END='',TT=null;
+const dayNo=c=>({Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6,Sun:7}[c.weekday]||0);
+const isClockTime=t=>typeof t==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(t);
+function departureTimesOf(entry){
+  if(!entry||typeof entry!=='object')return [];
+  // Prefer explicit departure-only fields. Arrival/Ankunft arrays are never merged into the timetable.
+  const explicit=entry.departures??entry.departureTimes??entry.abfahrten??entry.abfahrtszeiten;
+  if(Array.isArray(explicit))return explicit.filter(isClockTime);
+  // If arrival data is present as a separate collection, ambiguous legacy `times` is not safe to use.
+  // That record must provide an explicit departures/Abfahrten collection instead.
+  const hasSeparateArrivals=['arrivals','arrivalTimes','ankuenfte','ankunftszeiten'].some(k=>Array.isArray(entry[k]));
+  if(hasSeparateArrivals)return [];
+  // Backward compatibility: in the current schema, `times` is the curated Abfahrtszeiten list.
+  return Array.isArray(entry.times)?entry.times.filter(isClockTime):[];
+}
+function resolveStop(raw,now=context()){
+  if(!raw)return null;
+  if(Array.isArray(raw.schedules)){
+    const day=dayNo(now);
+    const schedule=raw.schedules.find(x=>Array.isArray(x.days)&&x.days.includes(day));
+    if(!schedule)return {...raw,times:[],codes:[],noServiceDay:true,scheduleLabel:''};
+    return {...raw,...schedule,times:departureTimesOf(schedule),codes:schedule.codes||raw.codes||[],scheduleLabel:schedule.label||''};
+  }
+  return {...raw,times:departureTimesOf(raw)};
+}
+const getTripId=(no,line,i)=>resolveStop(STOPS[no]?.[line],context())?.codes?.[i]||'';
+// Timetable annotations: P = break/pause, Y/G (or G/Y) = same vehicle changes colour, ENDE/END = vehicle off duty. These are read from optional per-departure codes/markers when present.
+function tripAnnotation(no,line,i){const stop=resolveStop(STOPS[no]?.[line],context());const raw=[stop?.codes?.[i],stop?.markers?.[i],stop?.annotations?.[i],stop?.codes?.[i]?.marker,stop?.codes?.[i]?.annotation].filter(Boolean).join(' ').toUpperCase();return {raw,isPause:/(^|[^A-Z])P([^A-Z]|$)|PAUSE/.test(raw),switchYG:/Y\s*[/\-]\s*G|G\s*[/\-]\s*Y|YELLOW\s*[/\-]\s*GREEN|GREEN\s*[/\-]\s*YELLOW/.test(raw),endDuty:/\bEND(E)?\b|OFF\s*DUTY/.test(raw)};}
+function anyLineSwitchMarker(no,line,i){const a=tripAnnotation(no,line,i);return a.switchYG;}
+const TZ='Europe/Vienna';
+const $=id=>document.getElementById(id);
+let number='',selectedLine=null,override=false;
+let previewTimer=null,previewLastTick=0;
+const timeToMin=s=>{let [h,m]=s.split(':').map(Number);return h*60+m};
+const secondsUntil=(time,now)=>(timeToMin(time)-now.minute)*60-(now.second||0);
+const waitLabel=(time,now)=>{const seconds=secondsUntil(time,now);return seconds<=0?'Jetzt':`in ${Math.ceil(seconds/60)} Min.`};
+function viennaParts(date=new Date()){
+  const p=new Intl.DateTimeFormat('en-GB',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23',weekday:'short'}).formatToParts(date);
+  const d=Object.fromEntries(p.map(x=>[x.type,x.value]));
+  return {iso:`${d.year}-${d.month}-${d.day}`,ymd:`${d.day}.${d.month}.${d.year}`,clock:`${d.hour}:${d.minute}:${d.second}`,minute:+d.hour*60 + +d.minute,second:+d.second,weekday:d.weekday};
+}
+function context(){
+  if(override && $('testDate').value && $('testTime').value){
+    const [hh,mm]=$('testTime').value.split(':').map(Number),iso=$('testDate').value;
+    // Date arithmetic is in UTC purely to get the selected date's weekday.
+    const wd=new Date(iso+'T12:00:00Z').getUTCDay();
+    return {iso,ymd:iso.split('-').reverse().join('.'),clock:$('testTime').value,minute:hh*60+mm,second:0,weekday:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][wd],preview:true};
+  }
+  return viennaParts();
+}
+const isWeekend=c=>c.weekday==='Sat'||c.weekday==='Sun';
+function makeStopCircle(stopNo,line,large=false){
+  const circle=document.createElement('span');
+  circle.className='stop-circle'+(large?' stop-circle-large':'');
+  circle.style.setProperty('--stop-bg',LINE_INFO[line].css);
+  circle.style.setProperty('--stop-fg',line==='red'?'#fff':'#081824');
+  circle.textContent=stopNo;
+  circle.setAttribute('aria-hidden','true');
+  return circle;
+}
+function nextDeparturePreview(stop,now,stopNo,line){
+  if(now.iso<START||now.iso>END)return {time:'–:–',wait:'Fahrplan ungültig'};
+  if(stop.noServiceDay)return {time:'–:–',wait:'Heute keine Fahrten'};
+  if(stop.weekendOnly&&!isWeekend(now))return {time:'–:–',wait:'Nur Sa + So'};
+  const index=stop.times.findIndex(t=>timeToMin(t)>=now.minute);
+  if(index===-1)return {time:'–:–',wait:'Heute keine Fahrt mehr'};
+  const next=stop.times[index];
+  return {time:next,wait:waitLabel(next,now),code:getTripId(stopNo,line,index)};
+}
+function renderLineOptions(){
+  const ls=STOPS[number];if(!ls)return;
+  const now=context(),dst=$('lineOptions');dst.replaceChildren();
+  for(const line of Object.keys(ls)){
+    const btn=document.createElement('button');
+    btn.type='button';btn.className='line-btn';btn.dataset.line=line;
+    btn.style.setProperty('--c',LINE_INFO[line].css);btn.style.setProperty('--bus-fg',line==='red'?'#fff':'#081824');
+    btn.setAttribute('aria-pressed',String(selectedLine===line));
+    const activeStop=resolveStop(ls[line],now);const preview=nextDeparturePreview(activeStop,now,number,line);
+    btn.setAttribute('aria-label',`${LINE_INFO[line].de}, Bus ${preview.code||'–'}, nächste Abfahrt ${preview.time}, ${preview.wait}`);
+    const bar=document.createElement('span');bar.className='swatch';bar.setAttribute('aria-hidden','true');
+    const copy=document.createElement('span');copy.className='line-copy';
+    const title=document.createElement('span');title.className='line-title';title.append(document.createTextNode(LINE_INFO[line].de));
+    if(preview.code){const bus=document.createElement('span');bus.className='bus-code preview-code';bus.textContent=preview.code;title.append(bus)}
+    const time=document.createElement('span');time.className='line-next';time.textContent=preview.time;
+    const wait=document.createElement('span');wait.className='line-wait';wait.textContent=preview.wait;
+    const stationRow=document.createElement('span');stationRow.className='line-stop-row';
+    const stationName=document.createElement('span');stationName.className='line-stop-name';stationName.textContent=ls[line].name;
+    stationRow.append(makeStopCircle(number,line),stationName);
+    copy.append(title,time,wait,stationRow);btn.append(bar,copy);
+    btn.addEventListener('click',()=>{selectedLine=line;renderInput();setTimeout(()=>$('result').scrollIntoView({behavior:'smooth',block:'start'}),60)});dst.append(btn);
+  }
+}
+function refreshLineOptionPreviews(){
+  const ls=STOPS[number];
+  if(!number||!ls)return;
+  const now=context();
+  // Update the preview in place. Replacing these buttons each second could cancel
+  // a pointer/click sequence, making users tap a double-line stop several times.
+  $('lineOptions').querySelectorAll('.line-btn').forEach(btn=>{
+    const line=btn.dataset.line;
+    if(!line||!ls[line])return;
+    const activeStop=resolveStop(ls[line],now);
+    const preview=nextDeparturePreview(activeStop,now,number,line);
+    btn.setAttribute('aria-label',`${LINE_INFO[line].de}, Bus ${preview.code||'–'}, nächste Abfahrt ${preview.time}, ${preview.wait}`);
+    const time=btn.querySelector('.line-next');if(time)time.textContent=preview.time;
+    const wait=btn.querySelector('.line-wait');if(wait)wait.textContent=preview.wait;
+    const title=btn.querySelector('.line-title');
+    let code=title?.querySelector('.preview-code');
+    if(preview.code){
+      if(!code){code=document.createElement('span');code.className='bus-code preview-code';title?.append(code)}
+      if(code)code.textContent=preview.code;
+    }else if(code)code.remove();
+  });
+}
+function renderInput(){
+  number=String($('stopNo').value).trim();const ls=STOPS[number];
+  $('result').classList.add('hidden');$('message').classList.add('hidden');$('lineArea').classList.add('hidden');
+  if(!number){selectedLine=null;renderFull();return}
+  if(!ls){selectedLine=null;setMessage('Keine Haltestelle mit Nummer '+number+' im Fahrplan.');renderFull();return}
+  const lines=Object.keys(ls);
+  if(!lines.includes(selectedLine)){selectedLine=lines.length===1?lines[0]:null}
+  if(lines.length>1){
+    $('lineArea').classList.remove('hidden');
+    renderLineOptions();
+  }else{
+    // Single-line stops go straight to the timetable, without showing a redundant line chooser.
+    $('lineArea').classList.add('hidden');
+  }
+  if(!selectedLine){renderFull();return}
+  renderResult();
+}
+function setMessage(s){$('message').textContent=s;$('message').classList.remove('hidden')}
+function choose(n){$('stopNo').value=n;selectedLine=null;renderInput();$('stopNo').blur();if(STOPS[String(n)]&&Object.keys(STOPS[String(n)]).length===1)setTimeout(()=>$('result').scrollIntoView({behavior:'smooth',block:'start'}),60)}
+function renderResult(){
+  if(!number||!selectedLine||!STOPS[number]?.[selectedLine])return;
+  const now=context(),stop=resolveStop(STOPS[number][selectedLine],now), meta=LINE_INFO[selectedLine];
+  const valid=now.iso>=START&&now.iso<=END, weekendExcluded=stop.weekendOnly&&!isWeekend(now), noServiceDay=!!stop.noServiceDay;
+  const remaining=valid&&!weekendExcluded&&!noServiceDay?stop.times.map((t,i)=>({time:t,i})).filter(item=>timeToMin(item.time)>=now.minute):[];
+  $('result').style.setProperty('--active',meta.css);$('result').style.setProperty('--active-text',selectedLine==='red'?'#fff':'#081824');
+  $('routePill').replaceChildren();const dot=document.createElement('i');$('routePill').append(dot,document.createTextNode(meta.de));
+  if(remaining.length){const id=getTripId(number,selectedLine,remaining[0].i);if(id){const bus=document.createElement('span');bus.className='bus-code';bus.textContent=id;$('routePill').append(bus)}}
+  noDeparturesForSelection=!remaining.length;
+  updateStationClock();
+  const stationName=document.createElement('span');stationName.textContent=stop.name;
+  $('stopName').replaceChildren(makeStopCircle(number,selectedLine,true),stationName);
+  $('stopName').setAttribute('aria-label',`Haltestelle ${number}: ${stop.name}`);
+  $('result').classList.remove('hidden');
+  $('resultNote').textContent=stop.note||'Abfahrten laut Fahrplan, ohne Echtzeit-Verkehrsdaten.';
+  $('cdLive').textContent='';
+  if(!valid){$('nextTime').textContent='– – : – –';$('countdown').textContent='Außerhalb der Gültigkeit';$('resultNote').textContent=`Dieser Fahrplan gilt nur vom ${fmtD(START)} bis ${fmtD(END)}${END.slice(0,4)}. Mit „Andere Uhrzeit testen“ kannst du einen gültigen Tag auswählen.`}
+  else if(noServiceDay){$('nextTime').textContent='– – : – –';$('countdown').textContent='Heute keine Fahrten';$('resultNote').textContent='Für diesen Wochentag ist in Version 2 kein Fahrplan für diese Linie hinterlegt.'}
+  else if(weekendExcluded){$('nextTime').textContent='– – : – –';$('countdown').textContent='Nur am Wochenende';$('resultNote').textContent='Diese Haltestelle wird auf dieser Linie laut Fahrplan nur Samstag und Sonntag angefahren.'}
+  else if(!remaining.length){$('nextTime').textContent='– – : – –';$('countdown').textContent='Heute keine weiteren Fahrten';$('resultNote').textContent='Letzte planmäßige Abfahrt heute: '+stop.times.at(-1)+'.'}
+  else{
+    const next=remaining[0];
+    $('nextTime').textContent=next.time;
+    const minutesUntil=Math.ceil(Math.max(0,secondsUntil(next.time,now))/60);
+    $('cdLive').textContent=`In ${minutesUntil} Minuten`;
+    $('countdown').textContent='';
+  }
+  renderDepartureTimeline(stop,now,valid,weekendExcluded||noServiceDay);
+  renderFull();
+}
+let timelineKey='',lastHighlightedIndex=-2,userTimelineBrowsing=false;
+function timelineTargetScroll(index){
+  const rail=$('departureTimeline'),item=rail.children[index];
+  if(!item)return;
+  const left=item.offsetLeft-(rail.clientWidth-item.clientWidth)/2;
+  rail.scrollTo({left:Math.max(0,left),behavior:'smooth'});
+}
+function updateTimelineButtons(){
+  const rail=$('departureTimeline'),max=Math.max(0,rail.scrollWidth-rail.clientWidth);
+  $('timelinePrev').disabled=rail.scrollLeft<=2;
+  $('timelineNext').disabled=rail.scrollLeft>=max-2;
+}
+function renderDepartureTimeline(stop,now,valid,weekendExcluded){
+  const rail=$('departureTimeline');
+  const newKey=`${number}|${selectedLine}|${now.iso}|${weekendExcluded}`;
+  const fresh=timelineKey!==newKey || rail.childElementCount!==stop.times.length;
+  if(fresh){
+    timelineKey=newKey;lastHighlightedIndex=-2;userTimelineBrowsing=false;
+    const fragment=document.createDocumentFragment();
+    stop.times.forEach((tm,i)=>{
+      const card=document.createElement('div');card.className='trip-card';card.dataset.index=i;card.tabIndex=0;card.style.setProperty('--c',LINE_INFO[selectedLine].css);card.style.setProperty('--bus-fg',selectedLine==='red'?'#fff':'#081824');
+      const bus=getTripId(number,selectedLine,i);
+      card.setAttribute('aria-label',`${tm}, Bus ${bus||'unbekannt'}`);
+      const time=document.createElement('span');time.className='trip-time';time.textContent=tm;
+      const id=document.createElement('span');id.className='trip-code';id.textContent=bus||'—';
+      const tag=document.createElement('span');tag.className='trip-tag';
+      card.append(time,id,tag);fragment.append(card);
+    });
+    rail.replaceChildren(fragment);
+  }
+  const nextIndex=valid&&!weekendExcluded?stop.times.findIndex(t=>timeToMin(t)>=now.minute):-1;
+  [...rail.children].forEach((card,i)=>{
+    const past=valid&&!weekendExcluded&&timeToMin(stop.times[i])<now.minute;
+    card.classList.toggle('is-past',past);
+    card.classList.toggle('is-current',i===nextIndex);
+    card.classList.toggle('is-upcoming',valid&&!weekendExcluded&&i>nextIndex&&nextIndex>=0);
+    const tag=card.querySelector('.trip-tag');
+    tag.textContent=!valid?'':weekendExcluded?'Nur Wochenende':past?'Vorbei':waitLabel(stop.times[i],now);
+    if(i===nextIndex)card.setAttribute('aria-current','true');else card.removeAttribute('aria-current');
+  });
+  $('timelineMeta').textContent=`${stop.times.length} Fahrten · Zeit bis zur Abfahrt · wischen ← →`;
+  $('timelineNow').disabled=nextIndex===-1;
+  if(fresh||nextIndex!==lastHighlightedIndex){
+    const shouldFollow=fresh||!userTimelineBrowsing;
+    if(shouldFollow && nextIndex>=0){
+      // Center initially, but do not interrupt someone swiping through earlier trips.
+      requestAnimationFrame(()=>{if(timelineKey===newKey)timelineTargetScroll(nextIndex)});
+    }else if(fresh){
+      requestAnimationFrame(()=>{if(timelineKey===newKey){rail.scrollLeft=0;updateTimelineButtons()}});
+    }
+    lastHighlightedIndex=nextIndex;
+  }
+  requestAnimationFrame(updateTimelineButtons);
+}
+function renderFull(){
+  const dst=$('allTimes');dst.replaceChildren();
+  if(!number||!selectedLine||!STOPS[number]?.[selectedLine]){$('fullTimesLabel').textContent='Zuerst Haltestelle und Linienfarbe auswählen.';return}
+  const now=context(),s=resolveStop(STOPS[number][selectedLine],now);$('fullTimesLabel').replaceChildren(makeStopCircle(number,selectedLine),document.createTextNode(`${s.name} · ${LINE_INFO[selectedLine].de}${s.weekendOnly?' · nur Wochenende':''}`));
+  for(const [i,tm] of s.times.entries()){const b=document.createElement('button');b.type='button';b.append(document.createTextNode(tm));
+    const id=getTripId(number,selectedLine,i);if(id){const small=document.createElement('small');small.className='trip-id';small.textContent=id;b.append(small)}
+    b.title='Diese Abfahrtszeit als Vorschau anzeigen';
+    b.addEventListener('click',()=>{enablePreview();$('testTime').value=tm;override=true;renderResult()});
+    if(tm===($('nextTime').textContent||'')){b.style.borderColor=LINE_INFO[selectedLine].css;b.style.color=LINE_INFO[selectedLine].css}
+    else if(!override&&timeToMin(tm)<now.minute)b.style.opacity='.55';dst.append(b)
+  }
+}
+const ROUTE_COLORS={blue:'#20acef',red:'#f04f54',yellow:'#f6c73f',green:'#4ed49b'};
+let congestedRouteColours=new Set();
+let gpsLastSuccess=0,gpsRefreshBusy=false,gpsLastError='',noDeparturesForSelection=false;
+function selectedRouteColour(){const css=String(LINE_INFO[selectedLine]?.css||'').toLowerCase();for(const [colour,value] of Object.entries(ROUTE_COLORS||{})){if(String(value).toLowerCase()===css)return colour;}if(/^g/i.test(String(selectedLine||'')))return 'green';if(/^r/i.test(String(selectedLine||'')))return 'red';if(/^s/i.test(String(selectedLine||'')))return 'yellow';if(/^d/i.test(String(selectedLine||'')))return 'blue';return null;}
+function hasStrongLocalCongestion(stopNo, colour){
+ // Conservative signal: only count fresh vehicles near the selected stop, not a city-wide colour estimate.
+ const coords=STOP_COORDS[String(stopNo)];if(!coords||!colour||!Array.isArray(gpsFeatures))return false;
+ const nearby=gpsFeatures.filter(f=>{
+  const c=f?.geometry?.coordinates;if(!Array.isArray(c)||!Number.isFinite(+c[0])||!Number.isFinite(+c[1])||!f?.properties?.name)return false;
+  const age=gpsAge(f.properties?.lastupdate);if(age.stale)return false;
+  const [lon,lat]=c,near=nearestTimetableStop(lat,lon);if(routeColour(lat,lon,near)!==colour||haversine(lat,lon,coords[0],coords[1])>650)return false;
+  const hist=getHistory(f,lat,lon),speed=vehicleSpeed(f,hist);
+  const stopped=hist.length>=4&&(hist.at(-1).t-hist[0].t)>=4*60*1000&&haversine(hist[0].lat,hist[0].lon,lat,lon)<70;
+  return (speed!==null&&speed<=4)||stopped;
+ });
+ // Require at least two apparently slow/stationary vehicles close to one another.
+ return nearby.some((f,i)=>nearby.slice(i+1).some(g=>{
+  const a=f.geometry.coordinates,b=g.geometry.coordinates;
+  return haversine(+a[1],+a[0],+b[1],+b[0])<=300;
+ }));
+}
+// ITS Vienna Region traffic feed runs silently in the background. Tries direct access, then a client-side CORS relay if browser policy blocks the source. All ITS-based status decisions require fresh data.
+const ITS_PAGE_URL='https://wms.its-viennaregion.at/reisezeiten_wien/reisezeiten';
+const ITS_FRESH_MAX_MIN=30;
+const ITS_CORRIDORS=[
+ {id:1,name:'Gürtel: Wiental–Liechtenwerderplatz',points:[[48.197,16.342],[48.202,16.344],[48.209,16.348],[48.216,16.352],[48.223,16.357],[48.230,16.363]]},
+ {id:2,name:'Gürtel: A23–Eichenstraße',points:[[48.171,16.405],[48.173,16.391],[48.176,16.376],[48.180,16.360],[48.181,16.344]]},
+ {id:3,name:'Rathausplatz–Postbusgarage Erdberg',points:[[48.210,16.358],[48.207,16.369],[48.202,16.381],[48.197,16.395],[48.190,16.420]]},
+ {id:4,name:'Wagramer Straße / Lasallestraße',points:[[48.265,16.455],[48.254,16.442],[48.241,16.429],[48.229,16.414],[48.218,16.392]]},
+ {id:5,name:'Donaukanal: Friedensbrücke–Nordbrücke',points:[[48.227,16.368],[48.235,16.372],[48.243,16.379],[48.251,16.386],[48.257,16.391]]},
+ {id:6,name:'Brünner Straße: Nordbrücke–Stammersdorf',points:[[48.257,16.391],[48.268,16.394],[48.280,16.397],[48.292,16.399]]},
+ {id:7,name:'Triester Straße: Sterngasse–Matzleinsdorfer Platz',points:[[48.148,16.349],[48.158,16.351],[48.169,16.354],[48.179,16.357],[48.185,16.360]]},
+ {id:8,name:'A23: Inzersdorf–Kaisermühlen',points:[[48.151,16.359],[48.164,16.379],[48.178,16.400],[48.193,16.418],[48.211,16.428]]},
+ {id:9,name:'A22: A23–Nordbrücke',points:[[48.211,16.432],[48.225,16.420],[48.239,16.408],[48.251,16.397],[48.260,16.389]]},
+ {id:10,name:'Donaukanal / A4: Urania–Flughafen',points:[[48.208,16.379],[48.201,16.395],[48.190,16.420],[48.176,16.448],[48.157,16.485],[48.132,16.535],[48.119,16.566]]},
+ {id:11,name:'Westeinfahrt: Westautobahn–Karlsplatz',points:[[48.201,16.235],[48.201,16.260],[48.200,16.286],[48.199,16.313],[48.198,16.340],[48.199,16.369]]}
+];
+let itsFeed={state:'loading',routes:[],updatedAt:null,fetchedAt:0,source:'',error:'',ageMin:null};
+function itsText(v){return String(v??'').replace(/\s+/g,' ').trim();}
+function mmssSeconds(v){const m=String(v||'').match(/(\d{1,2}):(\d{2})/);return m?Number(m[1])*60+Number(m[2]):null;}
+function parseViennaWallClock(day,time){
+ const dm=String(day||'').match(/^(\d{4})-(\d{2})-(\d{2})$/),tm=String(time||'').match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);if(!dm||!tm)return null;
+ const target=Date.UTC(+dm[1],+dm[2]-1,+dm[3],+tm[1],+tm[2],+(tm[3]||0));let guess=new Date(target);
+ try{for(let i=0;i<3;i++){const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Vienna',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(guess);const o={};for(const p of parts)if(p.type!=='literal')o[p.type]=p.value;const represented=Date.UTC(+o.year,+o.month-1,+o.day,+o.hour,+o.minute,+o.second);guess=new Date(guess.getTime()+(target-represented));}}catch(e){return new Date(target);}
+ return guess;
+}
+function parseITSPage(html){
+ const doc=new DOMParser().parseFromString(String(html||''),'text/html');const bodyText=itsText(doc.body?.innerText||doc.body?.textContent||'');
+ const updatedMatch=bodyText.match(/Letzte\s+Aktualisierung\s*:\s*(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}:\d{2})(?::(\d{2}))?/i);
+ if(!updatedMatch)throw new Error('Zeitpunkt „Letzte Aktualisierung“ fehlt');
+ const date=`${updatedMatch[3]}-${updatedMatch[2]}-${updatedMatch[1]}`,clock=updatedMatch[4]+(updatedMatch[5]?':'+updatedMatch[5]:''),updatedAt=parseViennaWallClock(date,clock);
+ if(!updatedAt)throw new Error('Aktualisierungszeit nicht lesbar');
+ const routes=[];let lastRouteNo=null,lastRouteLabel='';
+ for(const tr of Array.from(doc.querySelectorAll('tr'))){
+  const cells=Array.from(tr.querySelectorAll('th,td')).map(c=>itsText(c.textContent)).filter(Boolean);if(!cells.length)continue;
+  const rowText=cells.join(' ');const measure=rowText.match(/\b(\d{2}:\d{2})\s*Uhr\b/i),current=rowText.match(/\b(\d{2}:\d{2})\s*min\b/i),delta=rowText.match(/([+\-−])\s*(\d{2}:\d{2})\s*min\b/i);
+  if(!measure||!current||!delta)continue;
+  let routeNo=null;for(const c of cells){if(/^\d{1,2}$/.test(c)){routeNo=Number(c);break;}}
+  if(routeNo===null){const leading=rowText.match(/^\s*(\d{1,2})\s+(?!\d{2}:\d{2})/);if(leading)routeNo=Number(leading[1]);}
+  let label='';
+  const directionIndex=cells.findIndex(c=>/gegenrichtung/i.test(c));
+  if(routeNo!==null)lastRouteNo=routeNo;else routeNo=lastRouteNo;
+  if(directionIndex>=0){label=(lastRouteLabel||`Route ${routeNo}`)+' · Gegenrichtung';}
+  else{
+   for(const c of cells){if(/^\d{1,2}$/.test(c)||/^\d{2}:\d{2}(?:\s*(?:Uhr|min))?$/i.test(c)||/^[+\-−]\s*\d{2}:\d{2}\s*min$/i.test(c)||/^nummer$/i.test(c)||/^route$/i.test(c)||/^letzte messung$/i.test(c)||/^aktuelle fahrzeit$/i.test(c)||/^abweichung/i.test(c)||/^grafik$/i.test(c))continue;
+    if(/gegenrichtung/i.test(c))continue;label=c;break;}
+   if(!label)label=`Route ${routeNo}`;if(routeNo!==null)lastRouteLabel=label;
+  }
+  const currentSeconds=mmssSeconds(current[1]),deltaSeconds=mmssSeconds(delta[2])*(delta[1]==='-'||delta[1]==='−'?-1:1);
+  if(!Number.isInteger(routeNo)||routeNo<1||routeNo>11||currentSeconds===null||!Number.isFinite(deltaSeconds))continue;
+  routes.push({routeNo,label,currentSeconds,deltaSeconds,measurementTime:measure[1]});
+ }
+ // Some page layouts flatten table cells. Fall back to line-based parsing only if no table rows were extracted.
+ if(!routes.length){
+  const raw=(doc.body?.innerText||doc.body?.textContent||'').split(/\r?\n/).map(itsText).filter(Boolean);let lastNo=null,lastName='';
+  for(const line of raw){if(!/\d{2}:\d{2}\s*Uhr/i.test(line)||!/([+\-−])\s*\d{2}:\d{2}\s*min/i.test(line))continue;
+   let no=null;const nm=line.match(/^\s*(\d{1,2})\s+/);if(nm){no=+nm[1];lastNo=no;}else no=lastNo;if(!no)continue;
+   const measurement=line.match(/\b(\d{2}:\d{2})\s*Uhr/i),current=line.match(/\b(\d{2}:\d{2})\s*min/i),delta=line.match(/([+\-−])\s*(\d{2}:\d{2})\s*min/i);if(!measurement||!current||!delta)continue;
+   let label=line.replace(/^\s*\d{1,2}\s+/,'').replace(/\s*\d{2}:\d{2}\s*Uhr.*$/i,'').trim();if(/gegenrichtung/i.test(label))label=(lastName||`Route ${no}`)+' · Gegenrichtung';else if(label)lastName=label;
+   routes.push({routeNo:no,label:label||`Route ${no}`,currentSeconds:mmssSeconds(current[1]),deltaSeconds:mmssSeconds(delta[2])*(delta[1]==='-'||delta[1]==='−'?-1:1),measurementTime:measurement[1]});
+  }
+ }
+ if(!routes.length)throw new Error('Keine auswertbaren Fahrzeit-Zeilen gefunden');
+ const ageMin=Math.max(0,(Date.now()-updatedAt.getTime())/60000);
+ // Per-corridor taxi measurement freshness is separate from the page's own update time.
+ const parts={};for(const p of new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Vienna',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(updatedAt))if(p.type!=='literal')parts[p.type]=p.value;
+ const updateDay=`${parts.year}-${parts.month}-${parts.day}`;
+ for(const row of routes){let measuredAt=parseViennaWallClock(updateDay,row.measurementTime);if(measuredAt&&measuredAt.getTime()>updatedAt.getTime()+5*60*1000){const previous=new Date(updatedAt.getTime()-24*60*60*1000);const pp={};for(const p of new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Vienna',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(previous))if(p.type!=='literal')pp[p.type]=p.value;measuredAt=parseViennaWallClock(`${pp.year}-${pp.month}-${pp.day}`,row.measurementTime);}row.measurementAgeMin=measuredAt?Math.max(0,(updatedAt.getTime()-measuredAt.getTime())/60000):Infinity;}
+ return {routes,updatedAt:updatedAt.toISOString(),ageMin};
+}
+function updateITSBadge(){
+ // Intentionally no visible diagnostics: feed retrieval and status updates run in the background.
+}
+async function refreshITSTraffic(){
+ if(itsFeed.busy)return;itsFeed.busy=true;
+ const target=ITS_PAGE_URL+(ITS_PAGE_URL.includes('?')?'&':'?')+'nocache='+Date.now();
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+ let lastError='';
+ try{
+  let html='',source='';
+  // First try direct access to the official ITS page.
+  try{
+   const response=await fetch(target,{method:'GET',cache:'no-store',mode:'cors',signal:controller.signal,headers:{'Accept':'text/html'}});
+   if(!response.ok)throw new Error('ITS HTTP '+response.status);
+   html=await response.text();if(!/<html|<table/i.test(html))throw new Error('ITS response was not HTML');source='ITS direct';
+  }catch(e){
+   lastError=String(e?.message||e);
+   // Browser-only fallback: relay the public page through AllOrigins.
+   const relay='https://api.allorigins.win/raw?url='+encodeURIComponent(target);
+   const response=await fetch(relay,{method:'GET',cache:'no-store',mode:'cors',signal:controller.signal,headers:{'Accept':'text/html'}});
+   if(!response.ok)throw new Error('ITS relay HTTP '+response.status);
+   html=await response.text();if(!/<html|<table/i.test(html))throw new Error('ITS relay returned no readable HTML');source='ITS relay';
+  }
+  const parsed=parseITSPage(html);
+  const stale=parsed.ageMin>ITS_FRESH_MAX_MIN;
+  itsFeed={...itsFeed,...parsed,state:stale?'stale':'ready',fetchedAt:Date.now(),source,error:stale?'ITS snapshot is older than freshness limit':'',busy:false};
+ }catch(e){
+  const message=String(e?.message||e);
+  itsFeed={...itsFeed,state:'blocked',routes:[],updatedAt:null,fetchedAt:Date.now(),source:'',error:(lastError?lastError+'; ':'')+message,ageMin:null,busy:false};
+ }finally{
+  clearTimeout(timer);itsFeed.busy=false;updateStationClock();
+ }
+}
+function pointSegmentDistanceMeters(lat,lon,a,b){
+ const cos=Math.cos(lat*Math.PI/180),x=(p)=>p[1]*111320*cos,y=(p)=>p[0]*111320;const px=lon*111320*cos,py=lat*111320,ax=x(a),ay=y(a),bx=x(b),by=y(b),dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;const t=l?Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/l)):0;return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
+}
+function distanceToITSCorridor(lat,lon,c){let best=Infinity;for(let i=0;i<c.points.length-1;i++)best=Math.min(best,pointSegmentDistanceMeters(lat,lon,c.points[i],c.points[i+1]));return best;}
+function assessITSAtStop(stopNo,colour){
+ if(itsFeed.state!=='ready'||!itsFeed.routes?.length)return {available:false,reason:itsFeed.state==='stale'?'ITS-Fahrzeitentabelle ist älter als 30 Minuten.':'ITS-Daten sind nicht aktuell verfügbar.'};
+ const coords=STOP_COORDS[String(stopNo)];if(!coords)return {available:true,matched:false,reason:'Für diese Haltestelle sind keine verlässlichen Koordinaten hinterlegt.'};
+ const near=ITS_CORRIDORS.map(c=>({...c,distance:distanceToITSCorridor(coords[0],coords[1],c)})).sort((a,b)=>a.distance-b.distance)[0];
+ if(!near||near.distance>700)return {available:true,matched:false,reason:'Keine der 11 ITS-Verkehrsrouten liegt nah genug an dieser Haltestelle.'};
+ const allRouteRows=itsFeed.routes.filter(r=>r.routeNo===near.id);
+ const routeRows=allRouteRows.filter(r=>Number.isFinite(r.measurementAgeMin)&&r.measurementAgeMin<=ITS_FRESH_MAX_MIN);
+ if(!routeRows.length)return {available:true,matched:false,corridor:near,reason:'Letzte Messung dieser ITS-Route ist älter als 30 Minuten oder nicht lesbar.'};
+ // If the public table shows both directions, average the fresh measurements conservatively rather than choosing the worst direction blindly.
+ const deltaSeconds=routeRows.reduce((sum,r)=>sum+r.deltaSeconds,0)/routeRows.length;
+ const currentSeconds=routeRows.reduce((sum,r)=>sum+r.currentSeconds,0)/routeRows.length;
+ const matchingSlowVehicles=(Array.isArray(gpsFeatures)?gpsFeatures:[]).filter(f=>{
+  const c=f?.geometry?.coordinates;if(!Array.isArray(c)||!Number.isFinite(+c[0])||!Number.isFinite(+c[1])||!f?.properties?.name)return false;
+  const [lon,lat]=c;if(gpsAge(f.properties?.lastupdate).stale)return false;
+  if(routeColour(lat,lon,nearestTimetableStop(lat,lon))!==colour)return false;
+  if(distanceToITSCorridor(lat,lon,near)>450||haversine(lat,lon,coords[0],coords[1])>1200)return false;
+  const hist=getHistory(f,lat,lon),speed=vehicleSpeed(f,hist),stopped=hist.length>=3&&(hist.at(-1).t-hist[0].t)>=3*60*1000&&haversine(hist[0].lat,hist[0].lon,lat,lon)<100;
+  return (speed!==null&&speed<=8)||stopped;
+ });
+ return {available:true,matched:true,corridor:near,deltaSeconds,currentSeconds,slowVehicleCount:matchingSlowVehicles.length,rows:routeRows,high:deltaSeconds>=300,moderate:deltaSeconds>=120};
+}
+function stopHasRecentGPSVehicle(stopNo, colour, radius=550, windowMs=12*60*1000){
+ // Check both current GPS positions and the rolling GPS history. A vehicle observed at/near the stop recently prevents an absence-only disruption alert.
+ const coords=STOP_COORDS[String(stopNo)];if(!coords||!colour||!Array.isArray(gpsFeatures))return null;
+ const now=Date.now();
+ for(const f of gpsFeatures){
+  const c=f?.geometry?.coordinates;if(!Array.isArray(c)||!Number.isFinite(+c[0])||!Number.isFinite(+c[1])||!f?.properties?.name||gpsAge(f.properties?.lastupdate).stale)continue;
+  const [lon,lat]=c,near=nearestTimetableStop(lat,lon);if(routeColour(lat,lon,near)!==colour)continue;
+  if(haversine(lat,lon,coords[0],coords[1])<=radius)return {present:true,source:'aktuelle GPS-Position'};
+  const key=String(f?.properties?.id??f?.properties?.name??'unknown'),hist=vehicleHistory.get(key)||[];
+  if(hist.some(pt=>now-pt.t<=windowMs&&haversine(pt.lat,pt.lon,coords[0],coords[1])<=radius))return {present:true,source:'GPS-Verlauf der letzten 12 Minuten'};
+ }
+ return {present:false,source:'Kein mutmaßlich passendes GPS-Fahrzeug aktuell oder in den letzten 12 Minuten nahe der Haltestelle'};
+}
+function currentDelayState(){
+ if(!number||!selectedLine||!STOPS[number]?.[selectedLine])return {label:'Keine Live-Daten',kind:'unknown',title:'Bitte Haltestelle und Linienfarbe auswählen.'};
+ if(override)return {label:'Vorschau',kind:'unknown',title:'Im Vorschau-Modus wird keine Live-Verspätung bewertet.'};
+ const now=context(),stop=resolveStop(STOPS[number][selectedLine],now);
+ if(now.iso<START||now.iso>END||stop.noServiceDay||(stop.weekendOnly&&!isWeekend(now)))return {label:'Kein Betrieb laut Plan',kind:'unknown',title:'Laut geladenem Fahrplan ist für diese Auswahl aktuell kein regulärer Betrieb hinterlegt.'};
+ if(!stop.times?.length)return {label:'No data',kind:'unknown',title:'Für diese Haltestelle/Linienauswahl sind keine gültigen Abfahrtszeiten verfügbar. Ankunftszeiten werden nicht als Abfahrten verwendet.'};
+ if(!gpsLastSuccess||Date.now()-gpsLastSuccess>90000)return {label:'Keine Live-Daten',kind:'unknown',title:'Die GPS-Daten sind nicht verfügbar oder älter als 90 Sekunden; Pünktlichkeit kann nicht bestätigt werden.'+(gpsLastError?' Letzter Abruffehler: '+gpsLastError:'')};
+ const nowMin=now.minute,departures=stop.times.map(time=>({time,minute:timeToMin(time)})).filter(x=>Number.isFinite(x.minute));
+ let nearestDeparture=null;for(const dep of departures){const gap=Math.abs(dep.minute-nowMin);if(!nearestDeparture||gap<nearestDeparture.gap)nearestDeparture={...dep,gap};}
+ const scheduleRelevant=!!nearestDeparture&&nearestDeparture.gap<=40,colour=selectedRouteColour();
+ const next=departures.find(x=>x.minute>=nowMin),prior=departures.filter(x=>x.minute<nowMin).at(-1);
+ const departureContext=next?`Nächste planmäßige Abfahrt: ${next.time}.`:prior?`Letzte planmäßige Abfahrt: ${prior.time}.`:'Keine passende planmäßige Abfahrt gefunden.';
+ // A vehicle waiting at a stop before its scheduled departure is normal, not congestion.
+ // Only evaluate traffic once the nearest scheduled DEPARTURE is at least 3 minutes overdue.
+ const departureOverdue=!!nearestDeparture&&nowMin>=nearestDeparture.minute+3;
+ if(scheduleRelevant&&!departureOverdue){
+  return {label:'On Time*',kind:'ok',title:`Die planmäßige Abfahrt ist noch nicht fällig oder liegt weniger als 3 Minuten zurück. Ein Bus, der bereits an der Haltestelle wartet, wird nicht als Stau gewertet. ${departureContext} Es werden ausschließlich Abfahrtszeiten verwendet.`};
+ }
+ const gpsJam=scheduleRelevant&&departureOverdue&&hasStrongLocalCongestion(number,colour);
+ const its= scheduleRelevant&&departureOverdue ? assessITSAtStop(number,colour) : {available:itsFeed.state==='ready',matched:false,reason:'Die nächste planmäßige Abfahrt ist noch nicht mindestens 3 Minuten überfällig; ITS wird für die aktuelle Statusentscheidung nicht herangezogen.'};
+ // ITS feed is only a corroborating source. A traffic corridor is approximated from the nearest stop coordinate;
+ // no public route geometry for the sightseeing tours is exposed in the app, so never claim exact bus-delay proof.
+ if(its.available&&its.matched&&its.moderate&&its.corridor?.distance<=700){
+  if(its.high&&its.slowVehicleCount>0)return {label:'Stau möglich',kind:'jam',title:`ITS Vienna Region meldet im nahegelegenen Abschnitt „${its.corridor.name}“ etwa +${Math.round(its.deltaSeconds/60)} Min. gegenüber normaler Fahrzeit; ${its.slowVehicleCount} langsames GPS-Fahrzeug passt zur geschätzten Linienfarbe. ${departureContext} Abfahrtszeiten werden verwendet. Die Verbindung zwischen Sightseeing-Tour und Verkehrskorridor ist näherungsweise, nicht offiziell bestätigt.`};
+  // Do not flag a bus from ITS corridor delay alone: nearest-stop proximity does not prove this tour uses that road.
+  if(its.high&&gpsJam)return {label:'Stau möglich',kind:'jam',title:`ITS-Reisezeit ist deutlich erhöht (+${Math.round(its.deltaSeconds/60)} Min.) und die lokale GPS-Analyse findet langsame Fahrzeuge. Abschnitt: ${its.corridor.name}. ${departureContext} Stau bleibt eine Schätzung.`};
+ }
+ if(gpsJam){const itsNote=its.available?(its.matched?`ITS ${its.corridor.name}: ${its.deltaSeconds>=0?'+':''}${Math.round(its.deltaSeconds/60)} Min. zur Normalfahrzeit; `:'ITS-Straßenabschnitt nicht passend zugeordnet; '):`ITS-Feed nicht verwendbar (${its.reason||itsFeed.state}); `;return {label:'Stau möglich',kind:'jam',title:`Lokale GPS-Schätzung zeigt mindestens zwei mutmaßlich passende Fahrzeuge mit sehr langsamer Bewegung. ${itsNote}${departureContext} Linienfarben und Tour-Straßenverlauf sind nicht amtlich zugeordnet.`};}
+ // GPS absence check: if a scheduled departure is >=10 minutes past and no inferred same-colour vehicle has been seen near this stop now or in the rolling 12-minute GPS history, warn about a possible service disruption. This can operate even when a later departure is scheduled.
+ // Route colour is inferred, not an official vehicle-to-tour assignment; therefore this is explicitly a possibility, not confirmation.
+ const latestPast=departures.filter(x=>x.minute<=nowMin).at(-1);
+ if(latestPast&&nowMin>=latestPast.minute+10){
+  const annotation=tripAnnotation(number,selectedLine,latestPast.i);
+  // Do not call a planned pause or an off-duty marker a missed bus.
+  if(!annotation.isPause&&!annotation.endDuty){
+   const presence=stopHasRecentGPSVehicle(number,colour);
+   // If the timetable marks this trip as Yellow/Green (or Green/Yellow), either inferred colour counts as the same vehicle being active.
+   const alternateColour=annotation.switchYG?(colour==='yellow'?'green':colour==='green'?'yellow':null):null;
+   const alternatePresence=alternateColour?stopHasRecentGPSVehicle(number,alternateColour):null;
+   const busPresent=presence?.present===true||alternatePresence?.present===true;
+   if((presence&&presence.present===false)&&!busPresent){
+    const lateBy=nowMin-latestPast.minute;
+    return {label:'Verspätung / Störung möglich',kind:'delay',title:`Die planmäßige Abfahrt ${latestPast.time} liegt etwa ${lateBy} Minuten zurück. ${presence.source}. Ein späterer Bus kann weiterhin im Fahrplan stehen, aber aktuell ist kein mutmaßlich passendes Fahrzeug nahe der Haltestelle erkennbar. Mögliche Verspätung, Umleitung oder Sperre; nicht amtlich bestätigt. Linienfarbe und Tour-Zuordnung werden aus GPS-Positionen geschätzt.`};
+   }
+   if(presence?.present===false&&busPresent){
+    return {label:'On Time*',kind:'ok',title:`Ein GPS-Fahrzeug wurde nahe der Haltestelle erkannt. ${annotation.switchYG?'Der Fahrplaneintrag ist als Farbwechsel Gelb/Grün markiert; beide Farben werden als mögliches Fahrzeug berücksichtigt. ':''}Eine Verspätung ist damit weder bestätigt noch ausgeschlossen.`};
+   }
+  }
+ }
+ const itsNote=its.available?(its.matched?`Nächster ITS-Abschnitt: ${its.corridor.name}, Abweichung ${its.deltaSeconds>=0?'+':''}${Math.round(its.deltaSeconds/60)} Min. zur Normalfahrzeit. `:'Keine passende ITS-Route nahe der ausgewählten Haltestelle. '):`${its.reason||'ITS-Daten derzeit nicht verfügbar'} `;
+ return {label:'On Time*',kind:'ok',title:`Kein ausreichend starkes lokales Stau-Signal erkannt. ${departureContext} ${itsNote}Das ist keine Bestätigung der Pünktlichkeit; Fahrzeug-Linienfarbe und genaue Tour-Straße sind nur geschätzt. Für Statusberechnungen werden ausschließlich planmäßige Abfahrtszeiten verwendet.`};
+}
+function updateStationClock(){const el=$('stationNumber');if(!el)return;const s=noDeparturesForSelection?{label:'No data',kind:'unknown',title:'Für die ausgewählte Haltestelle und Linie sind heute keine weiteren Abfahrten im Fahrplan hinterlegt.'}:currentDelayState();el.textContent=s.label;el.classList.toggle('traffic-jam',s.kind==='jam');el.classList.toggle('traffic-unknown',s.kind==='unknown');el.classList.toggle('traffic-delay',s.kind==='delay');el.title=s.title;el.setAttribute('aria-label','Geschätzte Verkehrslage: '+s.label);}
+async function refreshGPSStatus(){if(gpsRefreshBusy)return;gpsRefreshBusy=true;const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),12000);try{const r=await fetch(GPS_API,{method:'GET',cache:'no-store',mode:'cors',signal:controller.signal});if(!r.ok)throw new Error('HTTP '+r.status);const data=await r.json();if(!Array.isArray(data))throw new Error('Unerwartetes Antwortformat');gpsFeatures=data;gpsLastSuccess=Date.now();gpsLastError='';const rows=data.filter(f=>Array.isArray(f?.geometry?.coordinates)&&Number.isFinite(+f.geometry.coordinates[0])&&Number.isFinite(+f.geometry.coordinates[1])&&f?.properties?.name).map(f=>{const [lon,lat]=f.geometry.coordinates,near=nearestTimetableStop(lat,lon),colour=routeColour(lat,lon,near),hist=getHistory(f,lat,lon),speed=vehicleSpeed(f,hist);return {lat,lon,colour,hist,speed};});for(const r of rows){const same=rows.filter(o=>o!==r&&o.colour===r.colour&&r.colour&&haversine(r.lat,r.lon,o.lat,o.lon)<500);const slow=r.speed!==null&&r.speed<8,stopped=r.hist.length>=3&&(r.hist.at(-1).t-r.hist[0].t>3*60*1000)&&haversine(r.hist[0].lat,r.hist[0].lon,r.lat,r.lon)<100;r.traffic=r.colour&&same.length>=1&&(slow||stopped)?'congested':'other';}const counts={};for(const r of rows.filter(r=>r.traffic==='congested'))counts[r.colour]=(counts[r.colour]||0)+1;congestedRouteColours=new Set(Object.entries(counts).filter(([c,n])=>n>=2).map(([c])=>c));}catch(e){gpsLastError=e?.name==='AbortError'?'Zeitüberschreitung nach 12 Sekunden':String(e?.message||e);}finally{clearTimeout(timer);gpsRefreshBusy=false;updateStationClock();}}
+function refreshClock(){const c=context();$('liveClock').innerHTML='';const indicator=document.createElement('span');indicator.className='status-dot';$('liveClock').append(indicator,document.createTextNode((override?'Vorschau':'Wien')+' · '+c.ymd.slice(0,6)+' · '));const bold=document.createElement('b');bold.textContent=c.clock;$('liveClock').append(bold);if(number&&Object.keys(STOPS[number]||{}).length>1)refreshLineOptionPreviews();if(selectedLine)renderResult()}
+function enablePreview(){
+  $('testPanel').classList.remove('hidden');$('testToggle').setAttribute('aria-expanded','true');
+  if(!override){const c=viennaParts();$('testDate').value=c.iso<START?START:c.iso>END?END:c.iso;$('testTime').value=c.clock.slice(0,5)}
+  override=true;refreshClock()
+}
+function stopPreviewRun(){
+ if(previewTimer!==null){clearInterval(previewTimer);previewTimer=null;}
+ const btn=$('previewPlay');if(btn)btn.textContent='Vorschau starten ▶';
+ const status=$('previewRunStatus');if(status)status.textContent='Vorschau pausiert. Datum und Uhrzeit einstellen und erneut starten.';
+}
+function startPreviewRun(){
+ if(!$('testPanel').classList.contains('hidden')){override=true;}else{enablePreview();}
+ if(!$('testDate').value||!$('testTime').value){toast('Bitte Datum und Uhrzeit für die Vorschau wählen.');return;}
+ if(previewTimer!==null){stopPreviewRun();return;}
+ previewLastTick=Date.now();dutyAlertSeen.clear();
+ $('previewPlay').textContent='Vorschau pausieren Ⅱ';
+ $('previewRunStatus').textContent=`Vorschau läuft: ${$('previewSpeed').selectedOptions[0]?.textContent||'simulierte Zeit'}; Pausen-/Dienstende-Warnungen werden mit der Vorschauzeit geprüft.`;
+ refreshClock();updateDutyAlerts(TT);
+ previewTimer=window.setInterval(()=>{
+   const elapsed=Math.max(0,Date.now()-previewLastTick);previewLastTick=Date.now();
+   const rate=Math.max(1,Number($('previewSpeed').value)||1);
+   const [yy,mo,dd]=$('testDate').value.split('-').map(Number);
+   const [hh,mm]=$('testTime').value.split(':').map(Number);
+   // Treat the timetable as local wall-clock time; UTC is used only for simple calendar arithmetic.
+   const next=new Date(Date.UTC(yy,mo-1,dd,hh,mm)+(elapsed/1000)*rate*60000);
+   const yyyy=next.getUTCFullYear(),month=String(next.getUTCMonth()+1).padStart(2,'0'),day=String(next.getUTCDate()).padStart(2,'0');
+   $('testDate').value=`${yyyy}-${month}-${day}`;
+   $('testTime').value=`${String(next.getUTCHours()).padStart(2,'0')}:${String(next.getUTCMinutes()).padStart(2,'0')}`;
+   if($('testDate').value>(END||'9999-12-31')){
+     $('testDate').value=END;$('testTime').value='23:59';stopPreviewRun();toast('Ende des Fahrplanzeitraums erreicht.');
+   }
+   refreshClock();updateDutyAlerts(TT);
+ },1000);
+}
+$('previewPlay').addEventListener('click',startPreviewRun);
+$('previewAlertDemo').addEventListener('click',()=>{
+ stopPreviewRun();
+ $('testDate').value='2026-10-29';$('testTime').value='12:55';override=true;
+ refreshClock();updateDutyAlerts(TT);
+ toast('⚠ Testvorschau: rote D5-Pause am KHM um 13:00. Nächste gelistete Fahrt: R1 um 13:04.');
+ $('previewRunStatus').textContent='Beispiel geladen: 29.10.2026, 12:55. Die simulierte Warnung steht direkt darunter; optional „Vorschau starten“ drücken, um die Zeit laufen zu lassen.';
+});
+$('stopNo').addEventListener('input',renderInput);
+$('clear').addEventListener('click',()=>{$('stopNo').value='';selectedLine=null;renderInput();$('stopNo').focus()});
+document.querySelectorAll('[data-stop]').forEach(b=>b.addEventListener('click',()=>choose(b.dataset.stop)));
+$('testToggle').addEventListener('click',()=>{
+  if(!$('testPanel').classList.contains('hidden')){stopPreviewRun();$('testPanel').classList.add('hidden');$('testToggle').setAttribute('aria-expanded','false');override=false;refreshClock();updateDutyAlerts(TT)}
+  else enablePreview();
+});
+for(const el of [$('testDate'),$('testTime')])el.addEventListener('change',()=>{override=true;refreshClock();updateDutyAlerts(TT)});
+$('previewSpeed').addEventListener('change',()=>{if(previewTimer!==null){$('previewRunStatus').textContent=`Vorschau läuft: ${$('previewSpeed').selectedOptions[0]?.textContent||'simulierte Zeit'}.`;}});
+$('resetTime').addEventListener('click',()=>{stopPreviewRun();override=false;$('testPanel').classList.add('hidden');$('testToggle').setAttribute('aria-expanded','false');refreshClock();updateDutyAlerts(TT)});
+$('departureTimeline').addEventListener('pointerdown',()=>{userTimelineBrowsing=true});
+$('departureTimeline').addEventListener('wheel',()=>{userTimelineBrowsing=true},{passive:true});
+$('departureTimeline').addEventListener('scroll',updateTimelineButtons,{passive:true});
+$('departureTimeline').addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft'||e.key==='ArrowRight'){
+    userTimelineBrowsing=true;
+    e.preventDefault();
+    $('departureTimeline').scrollBy({left:e.key==='ArrowRight'?110:-110,behavior:'smooth'});
+  }
+});
+$('timelinePrev').addEventListener('click',()=>{userTimelineBrowsing=true;$('departureTimeline').scrollBy({left:-Math.max(120,$('departureTimeline').clientWidth*.75),behavior:'smooth'})});
+$('timelineNext').addEventListener('click',()=>{userTimelineBrowsing=true;$('departureTimeline').scrollBy({left:Math.max(120,$('departureTimeline').clientWidth*.75),behavior:'smooth'})});
+$('timelineNow').addEventListener('click',()=>{
+  const i=[...$('departureTimeline').children].findIndex(el=>el.classList.contains('is-current'));
+  if(i>=0){userTimelineBrowsing=false;timelineTargetScroll(i)}
+});
+$('showAll').addEventListener('click',()=>{$('fullTimes').open=!$('fullTimes').open;$('showAll').setAttribute('aria-expanded',String($('fullTimes').open));if($('fullTimes').open)$('fullTimes').scrollIntoView({behavior:'smooth',block:'nearest'})});
+$('fullTimes').addEventListener('toggle',()=>{$('showAll').setAttribute('aria-expanded',String($('fullTimes').open))});
+// ---- Timetable updates: validate, apply, cache, and check the host for a newer version ----
+const TT_URL='https://raw.githubusercontent.com/hatovsky-commits/fahrplanVSS/main/timetable.json',TT_CDN_URL='https://cdn.jsdelivr.net/gh/hatovsky-commits/fahrplanVSS@main/timetable.json',TT_KEY='vnb.timetable.v1',CHECK_MS=10*60*1000;
+const TT_CANDIDATES=[
+  ...(location.protocol==='file:'?[]:[{url:new URL('./timetable.json',window.location.href).href,label:'Pages'}]),
+  {url:TT_URL,label:'GitHub raw'},
+  {url:TT_CDN_URL,label:'CDN fallback'}
+];
+const fmtD=iso=>iso.slice(8,10)+'.'+iso.slice(5,7)+'.';
+let ttState={k:'',m:''};
+function validTT(d){
+  const e=[],dt=/^\d{4}-\d\d-\d\d$/;
+  if(!d||d.schema!==1)return ['schema muss 1 sein'];
+  if(!Number.isInteger(d.version))e.push('version fehlt');
+  if(!dt.test(d.validFrom||'')||!dt.test(d.validTo||'')||d.validFrom>d.validTo)e.push('Gültigkeit ungültig');
+  if(!d.lines||!Object.keys(d.lines).length)e.push('lines fehlt');
+  const st=Object.entries(d.stops||{});if(!st.length)e.push('stops fehlt');
+  for(const [no,ls] of st)for(const [ln,s] of Object.entries(ls)){
+    const w=`Haltestelle ${no}/${ln}`;
+    if(!d.lines?.[ln])e.push(w+': Linie unbekannt');
+    if(!s.name){e.push(w+': Haltestellenname fehlt');continue}
+    const schedules=Array.isArray(s.schedules)?s.schedules:[s];
+    if(!schedules.length){e.push(w+': Fahrplanvarianten fehlen');continue}
+    for(const [si,sc] of schedules.entries()){
+      const sw=schedules.length>1?`${w} (${sc.label||si+1})`:w;
+      const departureTimes=departureTimesOf(sc);
+      if(!departureTimes.length){e.push(sw+': Abfahrtszeiten fehlen (Ankunftszeiten werden nicht übernommen)');continue}
+      if(!departureTimes.every(isClockTime))e.push(sw+': Abfahrtszeitformat');
+      else if(departureTimes.some((x,i)=>i&&x<departureTimes[i-1]))e.push(sw+': Abfahrtszeiten nicht aufsteigend');
+      if(sc.codes&&sc.codes.length!==departureTimes.length)e.push(sw+': Anzahl Bus-Codes passt nicht zu Abfahrtszeiten');
+      if(Array.isArray(sc.days)&&(!sc.days.length||sc.days.some(day=>!Number.isInteger(day)||day<1||day>7)))e.push(sw+': Wochentage ungültig');
+    }
+  }
+  return e;
+}
+function renderStatus(){
+  const el=$('ttStatus');if(!TT)return;el.dataset.k=ttState.k;
+  const from=TT.validFrom?TT.validFrom.split('-').reverse().join('.'):'';
+  const to=TT.validTo?TT.validTo.split('-').reverse().join('.'):'';
+  const pub=from&&to?' · Stand '+from+'–'+to:'';
+  const label=`Fahrplan v${TT.version}${pub}${ttState.m?' · '+ttState.m:''}`;
+  el.replaceChildren(document.createElement('i'),document.createTextNode(label));
+  $('validity').textContent=label;
+}
+const dutyAlertSeen=new Set();
+function viennaNowParts(){
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Vienna',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());
+ const p={};for(const x of parts)if(x.type!=='literal')p[x.type]=x.value;
+ return {date:`${p.year}-${p.month}-${p.day}`,minutes:Number(p.hour)*60+Number(p.minute)};
+}
+function minutesOfClock(s){if(!/^\d{2}:\d{2}$/.test(String(s||'')))return null;const [h,m]=s.split(':').map(Number);if(h>23||m>59)return null;return h*60+m;}
+function dutyEventTime(e){
+ const m=minutesOfClock(e.time);if(m!==null)return {minutes:m,label:e.time,isProxy:false,inferred:!!e.timeInferred};
+ if(e.type==='end_duty'&&e.precedingTime)return {minutes:minutesOfClock(e.precedingTime),label:`last printed time at previous stop ${e.precedingTime}`,isProxy:true};
+ return null;
+}
+function renderDutyEvents(d){
+ let box=document.getElementById('dutyEvents');
+ if(!box){box=document.createElement('section');box.id='dutyEvents';box.className='card';box.style.cssText='padding:14px;margin:12px auto;max-width:720px';const v=document.querySelector('.wrap');if(v)v.insertBefore(box,v.firstChild);}
+ const events=Array.isArray(d.planEvents)?d.planEvents:[];
+ box.innerHTML='<h2 style="font-size:1rem;margin:0 0 8px">Dienstplan · Pause / Farbwechsel / Dienstende</h2>'+ 
+  '<p style="color:var(--sub);font-size:.8rem;margin:0 0 10px">P = Pause · Y/G = dasselbe Fahrzeug wechselt von Gelb zu Grün · ENDE = Dienstende. Gedruckte Zeiten sind Originalzeiten. ENDE-Zielzeiten ohne Uhrzeit im Feld sind geschätzte Ankünfte aus dem Zeitabstand zwischen den letzten beiden Stationen und werden als geschätzt markiert.</p>'+ 
+  '<div id="dutyAlert" aria-live="polite" style="display:none;margin:0 0 12px;padding:10px 12px;border-radius:10px;border:1px solid #f6c73f;background:rgba(246,199,63,.12);color:var(--text)"></div>'+ 
+  (events.length?'<div style="display:grid;gap:6px">'+events.map(e=>{
+   const when=e.time&&e.time!=='—'?e.time:(e.precedingTime?`ENDE · letzte Zeit ${e.precedingTime}`:'Uhrzeit im Plan nicht gedruckt');
+   const vc=e.vehicleCode?` · Bus ${escHTML(e.vehicleCode)}`:'';
+   const next=e.continuation?`<small style="display:block;color:#4ed49b;font-size:.75rem;margin-top:3px">Weiterfahrt: ${escHTML(e.continuation.description||('derselbe '+(e.continuation.vehicleCode||e.vehicleCode||'Bus')+' als '+String(d.lines?.[e.continuation.line]?.de||e.continuation.line).toUpperCase()))} · ${escHTML(e.continuation.stopName||'')} · ${escHTML(e.continuation.time||'')}</small>`:'';
+   const inferred=e.timeInferred?'<small style="display:block;color:var(--sub);font-size:.72rem;margin-top:3px">Geschätzte Ankunft aus dem Fahrplanabstand; im ENDE-Feld selbst ist keine Uhrzeit gedruckt.</small>':'';
+   const note=e.sourceNote?`<small style="display:block;color:var(--sub);font-size:.72rem;margin-top:3px">${escHTML(e.sourceNote)}</small>`:'';
+   return '<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px;background:rgba(255,255,255,.04);border-radius:9px"><span><b>'+escHTML(when)+'</b> · '+escHTML(e.stopName)+' · '+escHTML(String(e.line).toUpperCase())+vc+next+inferred+note+'</span><span style="font-weight:800;white-space:nowrap;color:'+(e.type==='end_duty'?'#f6c73f':e.type.includes('colour')?'#4ed49b':'#20acef')+'">'+escHTML(e.marker)+'</span></div>';
+  }).join('')+'</div>':'<p>Keine Planereignisse hinterlegt.</p>');
+ updateDutyAlerts(d);
+}
+function updateDutyAlerts(d){
+ const box=document.getElementById('dutyAlert');
+ const previewContent=document.getElementById('previewAlertContent');
+ const active=context();
+ const now={date:active.iso,minutes:active.minute};
+ const inValidity=!(d.validFrom&&now.date<d.validFrom)&&!(d.validTo&&now.date>d.validTo);
+ const events=(Array.isArray(d.planEvents)?d.planEvents:[]).map(e=>({e,when:dutyEventTime(e)})).filter(x=>x.when&&x.when.minutes!==null);
+ const future=events.map(x=>({...x,delta:x.when.minutes-now.minutes})).filter(x=>x.delta>=0&&x.delta<=60).sort((a,b)=>a.delta-b.delta);
+ const imminent=events.map(x=>({...x,delta:x.when.minutes-now.minutes})).filter(x=>x.delta>=0&&x.delta<=5).sort((a,b)=>a.delta-b.delta);
+ // Keep a permanent, plainly visible preview panel. This gives the operator a place to confirm which event the simulated clock is matching.
+ if(previewContent){
+   if(!inValidity){previewContent.textContent=`Datum ${active.ymd} liegt außerhalb des Fahrplanzeitraums ${d.validFrom||''} bis ${d.validTo||''}.`;}
+   else if(!events.length){previewContent.textContent='Keine Planereignisse im geladenen JSON gefunden. Bitte prüfen, ob timetable.json planEvents enthält.';}
+   else if(future.length){
+     previewContent.innerHTML=future.slice(0,4).map(x=>{
+       const e=x.e;const kind=e.type==='end_duty'?'DIENSTENDE':(/colour_change/.test(e.type||'')||/Y\s*\/\s*G|G\s*\/\s*Y/.test(e.marker||''))?'FARBWECHSEL':'PAUSENWARNUNG';
+       const lineName=String(d.lines?.[e.line]?.de||e.line).toUpperCase();
+       const delta=x.delta===0?'JETZT':`in ${x.delta} Min.`;
+       let next='';
+       const ls=d.stops?.[String(e.stop)]?.[e.line];
+       if(ls&&Array.isArray(ls.times)){
+         const departures=ls.times.map((time,i)=>({time,code:ls.codes?.[i]||''})).filter(q=>/^\d{2}:\d{2}$/.test(q.time)&&minutesOfClock(q.time)>x.when.minutes).sort((a,b)=>minutesOfClock(a.time)-minutesOfClock(b.time));
+         if(departures.length)next=` · Nächste gelistete Fahrt an dieser Station: ${escHTML(departures[0].code)} um ${escHTML(departures[0].time)}`;
+       }
+       if(e.continuation)next=` · Weiterfahrt: ${escHTML(e.continuation.description||e.continuation.vehicleCode||'gleiches Fahrzeug')} bei ${escHTML(e.continuation.stopName||'')} um ${escHTML(e.continuation.time||'')}`;
+       return `<div style="padding:7px 0;${x.delta<=5?'color:var(--text);font-weight:750;':''}">⚠ ${delta}: ${kind} · ${escHTML(lineName)}${e.vehicleCode?' · Bus '+escHTML(e.vehicleCode):''} · ${escHTML(e.stopName||'Haltestelle '+e.stop)} · ${escHTML(e.time||x.when.label||'')}${next}</div>`;
+     }).join('');
+   }else{previewContent.textContent='Keine Pause, kein Farbwechsel und kein Dienstende in den nächsten 60 Minuten. Wähle z. B. 29.10.2026 um 12:55, um die rote D5-Pause um 13:00 zu testen.';}
+ }
+ if(!box)return;
+ if(!inValidity){box.style.display='none';return;}
+ if(future.length){box.style.display='block';box.innerHTML='<b>Planereignisse in der nächsten Stunde</b><div style="margin-top:5px;display:grid;gap:5px">'+future.slice(0,4).map(x=>{
+  const e=x.e;const label=e.type==='end_duty'?'Dienstende':'Pause / Farbwechsel';const c=e.vehicleCode?` · Bus ${escHTML(e.vehicleCode)}`:'';const detail=x.when.isProxy?` · ${escHTML(x.when.label)}`:'';
+  const timeNote=e.timeInferred?' · Zeit aus Fahrplanabständen abgeleitet':(e.type==='end_duty'&&!x.when.isProxy&&e.timePrinted===false?' · Uhrzeit im ENDE-Feld nicht gedruckt':'');const next=e.continuation?` → ${escHTML(e.continuation.description||('derselbe '+(e.continuation.vehicleCode||e.vehicleCode||'Bus')+' als '+String(d.lines?.[e.continuation.line]?.de||e.continuation.line).toUpperCase()))} bei ${escHTML(e.continuation.stopName||'')} um ${escHTML(e.continuation.time||'')}`:'';
+  return `<div>${x.delta===0?'Jetzt':`in ${x.delta} Min.`}: <b>${label}</b> · ${escHTML(String(e.line).toUpperCase())}${c} · ${escHTML(e.stopName)}${detail}${timeNote}${next}</div>`;
+ }).join('')+'</div>';}else{box.style.display='none';box.innerHTML='';}
+ // One in-app toast per event per open session; it only fires while the page is open.
+ for(const x of imminent){const e=x.e;const key=`${now.date}|${e.line}|${e.stop}|${e.time}|${e.marker}|${e.vehicleCode||''}`;if(dutyAlertSeen.has(key))continue;dutyAlertSeen.add(key);
+  const minutes=x.when.isProxy?(x.delta===0?'letzte Zeit an vorheriger Station jetzt':`letzte Zeit an vorheriger Station in ${x.delta} Min.`):(x.delta===0?'jetzt':`in ${x.delta} Min.`);const vc=e.vehicleCode?` · Bus ${e.vehicleCode}`:'';
+  const lead=e.type==='end_duty'?'DIENSTENDE nähert sich':'PAUSEN-/FARBWECHSEL-WARNUNG';
+  const next=e.continuation?` → ${e.continuation.description||('derselbe '+(e.continuation.vehicleCode||e.vehicleCode||'Bus')+' als '+String(d.lines?.[e.continuation.line]?.de||e.continuation.line).toUpperCase())} bei ${e.continuation.stopName||''} um ${e.continuation.time||''}`:'';const inferred=e.timeInferred?' · geschätzte Ankunft aus Fahrplanabständen':'';
+  toast(`⚠ ${lead}: ${e.line.toUpperCase()}${vc} · ${e.stopName} · ${minutes}${e.time&&e.time!=='—'?` (${e.time})`:''}${inferred}${next}`);
+  break;
+ }
+}
+function applyTT(d){
+  TT=d;STOPS=d.stops;LINE_INFO={};
+  for(const [k,v] of Object.entries(d.lines))LINE_INFO[k]={de:v.de,label:v.label,css:v.color};
+  START=d.validFrom;END=d.validTo;
+  $('validity').textContent=`Fahrplan v${d.version} · Stand ${fmtD(START)}${START.slice(0,4)}–${fmtD(END)}${END.slice(0,4)}`;
+  $('testDate').min=START;$('testDate').max=END;
+  timelineKey='';renderInput();renderStatus();renderDutyEvents(d);
+}
+function toast(m){const el=$('toast');el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),4500)}
+function loadTT(){
+  let best=EMBEDDED;
+  try{const s=JSON.parse(localStorage.getItem(TT_KEY)||'null');if(s&&!validTT(s).length&&s.version>best.version)best=s}catch(e){}
+  applyTT(best);
+}
+async function fetchLatestTimetable(){
+  const failures=[];
+  for(const candidate of TT_CANDIDATES){
+    const target=candidate.url;
+    const label=candidate.label;
+    try{
+      const r=await fetch(target,{method:'GET',cache:'no-store',mode:'cors',redirect:'follow',headers:{'Accept':'application/json, text/plain, */*'}});
+      if(!r.ok){failures.push(label+': HTTP '+r.status);continue;}
+      const contentType=r.headers.get('content-type')||'(Content-Type unbekannt)';
+      let raw=await r.text();
+      // Tolerate a UTF-8 BOM and whitespace; some editors also add a JSON code fence.
+      raw=raw.replace(/^\uFEFF/,'').trim();
+      if(raw.startsWith('```'))raw=raw.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+      let data;
+      try{data=JSON.parse(raw)}catch(parseError){
+        const preview=raw.slice(0,90).replace(/\s+/g,' ');
+        failures.push(label+': kein gültiges JSON ('+contentType+'); Antwort beginnt mit „'+preview+'“');
+        continue;
+      }
+      const errs=validTT(data);
+      if(errs.length){failures.push(label+': JSON geladen, aber Fahrplanformat ungültig ('+errs.slice(0,2).join(', ')+')');continue;}
+      return {data,source:target,failures};
+    }catch(e){
+      failures.push(label+': '+(e?.name==='AbortError'?'Zeitüberschreitung':(e?.message||'Netzwerk-/CORS-Fehler')));
+    }
+  }
+  throw new Error(failures.join(' | ')||'Keine Update-Quelle erreichbar');
+}
+async function checkUpdate(manual){
+  try{
+    const result=await fetchLatestTimetable(),d=result.data;
+    if(d.version>TT.version){
+      applyTT(d);try{localStorage.setItem(TT_KEY,JSON.stringify(d))}catch(e){}
+      ttState={k:'ok',m:'neu geladen'};renderStatus();toast(`Neuer Fahrplan geladen · v${d.version}`);
+    }else{ttState={k:'ok',m:'aktuell ✓'};renderStatus();if(manual)toast('Fahrplan ist aktuell')}
+  }catch(e){const detail=String(e?.message||e).slice(0,360);ttState={k:'off',m:'Update fehlgeschlagen: '+detail+' – gespeicherter Fahrplan'};renderStatus();if(manual)toast('Update fehlgeschlagen: '+detail)}
+}
+$('ttCheck').addEventListener('click',()=>checkUpdate(true));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
+window.addEventListener('online',()=>checkUpdate());
+loadTT();checkUpdate();window.setInterval(checkUpdate,CHECK_MS);window.setInterval(()=>updateDutyAlerts(TT),15000);
+function updateHero(){
+  const el=$('cdLive'),bar=$('bar');
+  // Keep the selected line's large, colour-coded 'In X Minuten' label visible.
+  el.classList.remove('soon');
+  bar.classList.add('hidden');
+}
+
+refreshClock();updateStationClock();updateHero();window.setInterval(()=>{refreshClock();updateHero()},1000);window.setInterval(updateStationClock,1000);
+
+// Live GPS map. Route colours are estimated geographically; no real line numbers are assigned.
+const GPS_API='https://tracker.globalguidesystems.com/api/v1/getObjects?token=e34oKlDuIx&lang=en';
+const GPS_REFRESH_MS=30000;
+let gpsTimer=null,gpsFeatures=[],gpsLoaded=false,gpsMap=null,gpsLayer=null,gpsMapFitted=false;
+const vehicleHistory=new Map();
+const STOP_COORDS={'1':[48.2035,16.3695],'2':[48.2037,16.3617],'3':[48.2038,16.3584],'4':[48.1983,16.3653],'5':[48.2103,16.3618],'6':[48.2135,16.3670],'7':[48.2240,16.3600],'9':[48.2170,16.3810],'10':[48.2110,16.3780],'11':[48.2150,16.3720],'12':[48.2110,16.3770],'13':[48.2020,16.3830],'14':[48.2020,16.3810],'15':[48.2020,16.3790],'16':[48.2000,16.3700],'17':[48.2070,16.3940],'18':[48.2160,16.3950],'20':[48.2110,16.3760],'21':[48.2390,16.4190],'22':[48.2340,16.4260],'23':[48.2340,16.4160],'24':[48.2250,16.4080],'25':[48.2180,16.3920],'29':[48.1960,16.3380],'30':[48.1840,16.3120],'31':[48.1850,16.3760],'33':[48.1850,16.3830],'34':[48.1910,16.3810],'35':[48.2010,16.3740],'36':[48.2500,16.2700],'37':[48.2570,16.2660],'39':[48.2600,16.2670],'40':[48.2640,16.2730],'45':[48.2500,16.2830],'47':[48.2160,16.3590],'48':[48.2100,16.3570]};
+const escHTML=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function haversine(lat1,lon1,lat2,lon2){const R=6371000,toRad=x=>x*Math.PI/180,dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1),a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(a));}
+function nearestTimetableStop(lat,lon){let best=null;for(const [stopNo,coords] of Object.entries(STOP_COORDS)){const d=haversine(lat,lon,coords[0],coords[1]);if(!best||d<best.distance)best={stopNo,distance:d};}return best;}
+function routeColour(lat,lon,near){
+ const dH= haversine(lat,lon,48.1850,16.3760), dS=haversine(lat,lon,48.1840,16.3120), dP=haversine(lat,lon,48.2180,16.3920);
+ if(dH<1100||dS<1500)return 'yellow';
+ if(['21','22','23','24'].includes(String(near?.stopNo))||(lon>=16.405&&lat>=48.205)||dP<1700)return 'blue';
+ if(near&&near.distance<850&&['1','2','3','4','5','6','7','9','10','11','12','13','14','15','16','17','18','20','35','47','48'].includes(String(near.stopNo)))return 'red';
+ return null;
+}
+function getHistory(f,lat,lon){const key=String(f?.properties?.id??f?.properties?.name??'unknown'),now=Date.now();let h=(vehicleHistory.get(key)||[]).filter(x=>now-x.t<12*60*1000);if(!h.length||now-h[h.length-1].t>=GPS_REFRESH_MS-3000)h.push({lat,lon,t:now});while(h.length>25)h.shift();vehicleHistory.set(key,h);return h;}
+function gpsAge(raw){const value=String(raw??'').trim();if(!value)return {label:'Zeit unbekannt',stale:true};const normalized=value.replace(' ','T');const d=new Date(normalized);if(!Number.isFinite(d.getTime()))return {label:'Zeit unbekannt',stale:true};const mins=Math.max(0,Math.floor((Date.now()-d.getTime())/60000));return {label:mins<1?'gerade eben':`vor ${mins} Min.`,stale:mins>3};}
+function vehicleSpeed(f,h){const raw=f?.properties?.speed;const hasReportedSpeed=raw!==null&&raw!==undefined&&String(raw).trim()!=='';if(hasReportedSpeed){const v=Number(raw);if(Number.isFinite(v)&&v>=0&&v<=200)return v;}if(h.length>=2){const a=h[0],b=h[h.length-1],mins=(b.t-a.t)/60000;if(mins>0.2)return haversine(a.lat,a.lon,b.lat,b.lon)/mins*0.06;}return null;}
+function ensureMap(){if(gpsMap||!window.L)return;gpsMap=L.map('gpsMap',{zoomControl:true}).setView([48.2082,16.3738],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(gpsMap);gpsLayer=L.layerGroup().addTo(gpsMap);setTimeout(()=>gpsMap.invalidateSize(),120);}
+function renderGPSAnalysis(features){
+ const all=features.filter(f=>Array.isArray(f?.geometry?.coordinates)&&Number.isFinite(+f.geometry.coordinates[0])&&Number.isFinite(+f.geometry.coordinates[1])&&f?.properties?.name);
+ const vehicles=all.filter(f=>{const name=String(f.properties.name||'');if(/zug|train|locomotive|railway|bahn/i.test(name))return false;const [lon,lat]=f.geometry.coordinates;return lon>16.15&&lon<16.55&&lat>48.05&&lat<48.32;});
+ const excluded=all.length-vehicles.length;const rows=vehicles.map(f=>{const [lon,lat]=f.geometry.coordinates,near=nearestTimetableStop(lat,lon),colour=routeColour(lat,lon,near),hist=getHistory(f,lat,lon),age=gpsAge(f.properties.lastupdate),speed=vehicleSpeed(f,hist);return {f,lon,lat,near,colour,hist,age,speed};});
+ // Same-colour vehicles close together are only counted as congestion when GPS speed/history also indicates slow movement.
+ for(const r of rows){const same=rows.filter(o=>o!==r&&o.colour===r.colour&&r.colour&&haversine(r.lat,r.lon,o.lat,o.lon)<500);const slow=r.speed!==null&&r.speed<8;const stopped=r.hist.length>=3&&((r.hist[r.hist.length-1].t-r.hist[0].t)>3*60*1000)&&haversine(r.hist[0].lat,r.hist[0].lon,r.lat,r.lon)<100;r.nearbySame=same.length;r.slow=slow||stopped;r.traffic=(r.colour&&same.length>=1&&r.slow)?'congested':(r.speed!==null&&r.speed>=15?'moving':'unknown');}
+ const congestion=rows.filter(r=>r.traffic==='congested');const countsByColour={};for(const r of congestion)countsByColour[r.colour]=(countsByColour[r.colour]||0)+1;congestedRouteColours=new Set(Object.entries(countsByColour).filter(([colour,count])=>count>=2).map(([colour])=>colour));updateStationClock();
+ ensureMap();if(gpsMap&&gpsLayer){gpsLayer.clearLayers();const bounds=[];for(const r of rows){if(!r.colour)continue;const color=ROUTE_COLORS[r.colour],icon=L.divIcon({className:'',html:`<div class="vehicle-dot" style="width:15px;height:15px;background:${color}"></div>`,iconSize:[15,15],iconAnchor:[7,7]});const label={blue:'Blaue Linie',red:'Rote Linie',yellow:'Gelbe Linie',green:'Grüne Linie'}[r.colour];const speedText=r.speed===null?'Geschwindigkeit unbekannt':`${Math.round(r.speed)} km/h`;const trafficText=r.traffic==='congested'?'Möglicher Stau':r.traffic==='moving'?'Bewegt sich':'Noch unklar';L.marker([r.lat,r.lon],{icon}).bindPopup(`<b>${escHTML(r.f.properties.name)}</b><br>${label}<br>${speedText}<br>${trafficText}<br>GPS: ${escHTML(r.age.label)}`).addTo(gpsLayer);bounds.push([r.lat,r.lon]);}if(bounds.length&&!gpsMapFitted){gpsMap.fitBounds(bounds,{padding:[20,20],maxZoom:14});gpsMapFitted=true;}}
+ $('gpsStatus').textContent=`Live-GPS aktualisiert · ${rows.filter(r=>r.colour).length} Fahrzeuge nach geschätzter Linienfarbe auf der Karte.`;
+}
+async function refreshGPS(){const status=$('gpsStatus');status.textContent='GPS-Positionen werden geladen …';try{const r=await fetch(GPS_API,{method:'GET',cache:'no-store',mode:'cors'});if(!r.ok)throw new Error('HTTP '+r.status);const data=await r.json();if(!Array.isArray(data))throw new Error('Unerwartetes Antwortformat');gpsFeatures=data;gpsLoaded=true;renderGPSAnalysis(data);$('gpsUpdated').textContent='Letzte GPS-Abfrage: '+new Date().toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}catch(e){status.textContent='GPS-Daten konnten nicht geladen werden ('+e.message+').';}}
+$('loadTracker').addEventListener('click',()=>{const panel=$('trackingPanel'),button=$('loadTracker'),opening=panel.classList.contains('hidden');panel.classList.toggle('hidden',!opening);button.setAttribute('aria-expanded',String(opening));button.querySelector('.track-toggle-mark').textContent=opening?'－':'＋';});
+$('trackerConsentMode').addEventListener('click',()=>{const viewport=$('originalTrackerViewport'),button=$('trackerConsentMode'),expanded=!viewport.classList.contains('full-page');viewport.classList.toggle('full-page',expanded);button.setAttribute('aria-pressed',String(expanded));button.textContent=expanded?'Zur Kartenansicht zurück':'Freigabe / Consent anzeigen';$('trackerConsentHint').textContent=expanded?'Oben auf der Originalseite nach einer Kartenfreigabe suchen; danach im Rahmen zur Karte scrollen.':'Falls die Karte grau bleibt, hier die vollständige Originalseite öffnen und eine Kartenfreigabe ggf. selbst bestätigen.';if(expanded)viewport.scrollTop=0;});
+// Keep disruption checks running even while the official map is collapsed.
+refreshGPSStatus();window.setInterval(refreshGPSStatus,GPS_REFRESH_MS);refreshITSTraffic();window.setInterval(refreshITSTraffic,5*60*1000);
+
+
+</script>
+</body>
+</html>
