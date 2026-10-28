@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101b27">
   <meta name="description" content="Nächste Vienna Sightseeing Bus-Abfahrt nach Haltestellennummer und Linie finden.">
-  <title>Next Bus · Vienna Sightseeing v14 Preview Clock Fix</title>
+  <title>Next Bus · Vienna Sightseeing v16 Preview Clock Diagnostic</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <style>
@@ -158,7 +158,7 @@ summary::-webkit-details-marker{display:none}summary::after{content:'＋';color:
 </head>
 <body>
 <header class="appbar"><div class="appbar-in">
-  <div class="brand"><span class="logo" aria-hidden="true">↗</span><div class="brand-copy"><div class="brand-title"><b>Vienna <em>Next Bus</em></b><span class="app-version">App v4.2 · Duty-Test v14 · by VassiliX</span></div><small id="validity">Fahrplan …</small></div></div>
+  <div class="brand"><span class="logo" aria-hidden="true">↗</span><div class="brand-copy"><div class="brand-title"><b>Vienna <em>Next Bus</em></b><span class="app-version">App v4.2 · Duty-Test v16 · by VassiliX</span></div><small id="validity">Fahrplan …</small></div></div>
   <div class="app-meta"><div class="clock" id="liveClock"><span class="status-dot"></span><b>--:--:--</b></div></div>
 </div></header>
 <main class="wrap">
@@ -701,40 +701,56 @@ function enablePreview(){
   override=true;refreshClock()
 }
 function stopPreviewRun(){
- if(previewTimer!==null){clearInterval(previewTimer);previewTimer=null;}
+ if(previewTimer!==null){window.clearInterval(previewTimer);previewTimer=null;}
  previewLastTick=0;previewCurrentMs=null;
  const btn=$('previewPlay');if(btn)btn.textContent='Vorschau starten ▶';
- const status=$('previewRunStatus');if(status){
-   const c=context();
-   status.textContent=`Vorschau pausiert bei ${c.clock}. Uhrzeit einstellen oder erneut starten.`;
- }
+ const status=$('previewRunStatus');
+ if(status){const c=context();status.textContent=`Vorschau pausiert bei ${c.clock}. Uhrzeit einstellen oder erneut starten.`;}
 }
 function startPreviewRun(){
- if(!$('testPanel').classList.contains('hidden')){override=true;}else{enablePreview();}
- if(!$('testDate').value||!$('testTime').value){toast('Bitte Datum und Uhrzeit für die Vorschau wählen.');return;}
  if(previewTimer!==null){stopPreviewRun();return;}
- const initialMs=previewTimestampFromInputs();
- if(!Number.isFinite(initialMs)){toast('Ungültige Vorschauzeit. Bitte Datum und Uhrzeit prüfen.');return;}
- previewCurrentMs=null;override=true;dutyAlertSeen.clear();
+ if($('testPanel').classList.contains('hidden'))enablePreview();
+ if(!$('testDate').value||!$('testTime').value){toast('Bitte Datum und Uhrzeit für die Vorschau wählen.');return;}
+ const startMs=previewTimestampFromInputs();
+ if(!Number.isFinite(startMs)){toast('Ungültige Vorschauzeit. Bitte Datum und Uhrzeit prüfen.');return;}
+ override=true;
+ previewCurrentMs=startMs;
+ previewLastTick=Date.now();
+ let tickCount=0;
+ dutyAlertSeen.clear();
  $('previewPlay').textContent='Vorschau pausieren Ⅱ';
  const speedText=$('previewSpeed').selectedOptions[0]?.textContent||'simulierte Zeit';
- $('previewRunStatus').textContent=`Vorschau läuft · ${context().clock} · ${speedText}.`;
+ $('previewRunStatus').textContent=`Vorschau startet · ${context().clock} · ${speedText} · Tick 0`;
  refreshClock();updateDutyAlerts(TT);
- // Deliberately simple clock: each second of real time advances the visible HH:MM field.
- // All timetable and alert logic reads that same field via context().
+
+ // One internal timestamp drives the preview. The visible time input is output only,
+ // so browser time-input rounding cannot freeze the simulation.
  previewTimer=window.setInterval(()=>{
-   const currentMs=previewTimestampFromInputs();
-   if(!Number.isFinite(currentMs)){stopPreviewRun();toast('Ungültige Vorschauzeit.');return;}
-   const rate=Math.max(1,Number($('previewSpeed').value)||1);
-   const nextMs=currentMs+rate*60*1000;
-   const maxDate=Date.UTC(Number(END.slice(0,4)),Number(END.slice(5,7))-1,Number(END.slice(8,10)),23,59,0,0);
-   if(nextMs>maxDate){
-     writePreviewInputs(maxDate);refreshClock();updateDutyAlerts(TT);stopPreviewRun();toast('Ende des Fahrplanzeitraums erreicht.');return;
+   try{
+     const wallNow=Date.now();
+     const elapsed=Math.max(0,wallNow-previewLastTick);
+     previewLastTick=wallNow;
+     const rate=Math.max(1,Number($('previewSpeed').value)||1);
+     previewCurrentMs+=elapsed*rate*60; // 1 real second = selected number of simulated minutes.
+     const maxDate=Date.UTC(Number(END.slice(0,4)),Number(END.slice(5,7))-1,Number(END.slice(8,10)),23,59,59,999);
+     if(previewCurrentMs>maxDate)previewCurrentMs=maxDate;
+     writePreviewInputs(previewCurrentMs);
+     tickCount++;
+     refreshClock();
+     updateDutyAlerts(TT);
+     const simulated=context().clock;
+     $('previewRunStatus').textContent=`Vorschau läuft · Simulationszeit ${simulated} · Tick ${tickCount} · ${speedText}.`;
+     if(previewCurrentMs>=maxDate){
+       stopPreviewRun();
+       toast('Ende des Fahrplanzeitraums erreicht.');
+     }
+   }catch(err){
+     const message=String(err&&err.message?err.message:err);
+     stopPreviewRun();
+     const status=$('previewRunStatus');
+     if(status)status.textContent=`Vorschau abgebrochen: ${message}`;
+     console.error('Preview clock failed:',err);
    }
-   writePreviewInputs(nextMs);
-   const simulated=context().clock;
-   $('previewRunStatus').textContent=`Vorschau läuft · Simulationszeit ${simulated} · ${speedText}.`;
-   refreshClock();updateDutyAlerts(TT);
  },1000);
 }
 $('previewPlay').addEventListener('click',startPreviewRun);
