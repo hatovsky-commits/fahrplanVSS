@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "version": 10,
-  "published": "2026-10-28T17:54:00Z",
-  "title": "Vienna Sightseeing Fahrplan – Dienstplan",
+  "version": 11,
+  "published": "2026-10-28T20:50:00Z",
+  "title": "Vienna Sightseeing Fahrplan – exakte Busstatus",
   "validFrom": "2026-10-12",
   "validTo": "2026-11-01",
   "timezone": "Europe/Vienna",
@@ -854,6 +854,7 @@
           "11:00",
           "11:24",
           "11:48",
+          "11:48",
           "12:12",
           "12:36",
           "13:00",
@@ -863,6 +864,7 @@
           "14:36",
           "15:00",
           "15:24",
+          "15:48",
           "15:48",
           "16:12",
           "16:36",
@@ -881,6 +883,7 @@
           "D2/D1",
           "D4",
           "D5",
+          "ABL",
           "ABL1/D2",
           "D3/ABL1",
           "D1",
@@ -891,6 +894,7 @@
           "D1/ABL1",
           "D3",
           "ABL",
+          "D6",
           "D2/D1",
           "D4",
           "ABL1/D2",
@@ -953,6 +957,7 @@
           "11:02",
           "11:26",
           "11:50",
+          "11:50",
           "12:14",
           "12:38",
           "13:02",
@@ -962,6 +967,7 @@
           "14:38",
           "15:02",
           "15:26",
+          "15:50",
           "15:50",
           "16:14",
           "16:38",
@@ -980,6 +986,7 @@
           "D2/D1",
           "D4",
           "D5",
+          "ABL",
           "ABL1/D2",
           "D3/ABL1",
           "D1",
@@ -990,6 +997,7 @@
           "D1/ABL1",
           "D3",
           "ABL",
+          "D6",
           "D2/D1",
           "D4",
           "ABL1/D2",
@@ -1051,6 +1059,7 @@
           "11:04",
           "11:28",
           "11:52",
+          "11:52",
           "12:16",
           "12:40",
           "13:04",
@@ -1060,6 +1069,7 @@
           "14:40",
           "15:04",
           "15:28",
+          "15:52",
           "15:52",
           "16:16",
           "16:40",
@@ -1078,6 +1088,7 @@
           "D2/D1",
           "D4",
           "D5",
+          "ABL",
           "ABL1/D2",
           "D3/ABL1",
           "D1",
@@ -1088,6 +1099,7 @@
           "D1/ABL1",
           "D3",
           "ABL",
+          "D6",
           "D2/D1",
           "D4",
           "ABL1/D2",
@@ -1176,9 +1188,7 @@
           "R1",
           "D5",
           "R1"
-        ],
-        "weekendOnly": true,
-        "note": "Nur am Wochenende"
+        ]
       }
     },
     "17": {
@@ -2293,7 +2303,15 @@
       "marker": "B/R",
       "type": "colour_change",
       "vehicleCode": "D5",
-      "sourceNote": "B/R is printed beside 11:48 in the blue-line MAK/Wien-Mitte arrival row; interpreted as a blue-to-red colour change."
+      "sourceNote": "B/R is printed beside 11:48 in the blue-line MAK/Wien-Mitte arrival row; interpreted as a blue-to-red colour change.",
+      "continuation": {
+        "line": "red",
+        "stop": 2,
+        "stopName": "KHM / Kunsthistorisches Museum",
+        "time": "12:04",
+        "vehicleCode": "D5",
+        "description": "Same duty continues on the red line; destination timing is linked to the plan."
+      }
     },
     {
       "line": "blue",
@@ -2305,7 +2323,15 @@
       "vehicleCode": "D5",
       "dutyColumn": 7,
       "timePrinted": true,
-      "sourceNote": "B/R is printed in the D5 duty column at Staatsoper (Ankunft) at 11:58. The same column carries B/R at MAK/Wien-Mitte at 11:48; this event identifies the terminal arrival where the line change can be acted on."
+      "sourceNote": "B/R is printed in the D5 duty column at Staatsoper (Ankunft) at 11:58. The same column carries B/R at MAK/Wien-Mitte at 11:48; this event identifies the terminal arrival where the line change can be acted on.",
+      "continuation": {
+        "line": "red",
+        "stop": 2,
+        "stopName": "KHM / Kunsthistorisches Museum",
+        "time": "12:04",
+        "vehicleCode": "D5",
+        "description": "Same duty continues on the red line; destination timing is linked to the plan."
+      }
     },
     {
       "line": "blue",
@@ -2589,8 +2615,8 @@
       "marker": "P",
       "type": "pause",
       "vehicleCode": "D5",
-      "sourceNote": "Marker/time aligned to the same column in the red-line KHM arrival row. Next listed red-line service at the same station: R1 at 13:04.",
-      "continuation": {
+      "sourceNote": "D5 pause marker at KHM (arrival row). R1 at 13:04 is the next listed passenger departure; it is not D5 continuing.",
+      "nextService": {
         "line": "red",
         "stop": 2,
         "stopName": "KHM / Kunsthistorisches Museum",
@@ -2855,7 +2881,7 @@
       "sourceNote": "ENDE is printed in the final green-line duty column headed G1 at Votivkirche (Ankunft), without a clock time. The same column shows 16:37 at stop 39; the repeated stop-39-to-Votivkirche segment is 23 minutes, giving an inferred terminal arrival at 17:00."
     }
   ],
-  "planEventsNote": "Version 9 audit against the supplied timetable image. Pause and line-change markers were checked against their displayed row and duty column. Printed ENDE cells without a clock time now have explicitly labelled estimated terminal-arrival times derived from the same column’s preceding stop plus the repeated route segment duration. “E” at blue MAK/Wien-Mitte is retained separately as an unclassified annotation, not treated as ENDE. The S6 transition yellow 13:20 → green at Station 47 13:45 is linked, followed by its pause at green Station 47 14:45. Original departure-time arrays are preserved from version 5.",
+  "planEventsNote": "Version 11: source-plan marker rows are shown only at their exact station/time. The following passenger departure is marked AVAILABLE IN X MIN. Duty labels are not copied to every earlier row just because the displayed code contains a shared token. Six omitted blue-line repeated-time cells at stops 13, 14 and 15 have been restored from the source image. Weekday/weekend filtering is intentionally disabled as requested. Pause duration is calculated only when a matching same-code time at the same stop is available; otherwise the display states that the pause length is unconfirmed. Terminal times for printed ENDE cells without clock times remain explicitly marked as estimates.",
   "unclassifiedAnnotations": [
     {
       "line": "blue",
@@ -2871,7 +2897,7 @@
   "audit": {
     "source": "Busfahrplan Midesason 2026 A Plan, 12.10–01.11",
     "auditDate": "2026-10-26",
-    "departureArraysComparedWithVersion5": "identical",
+    "departureArraysComparedWithVersion5": "updated_from_source_missing_cells_restored",
     "checks": [
       {
         "item": "Blue-line P markers at MAK/Wien-Mitte",
@@ -2907,8 +2933,24 @@
         "item": "Yellow terminal ENDE",
         "status": "checked_inferred_times",
         "note": "Six ENDE cells are estimated at previous stop 35 time + 7 minutes."
+      },
+      {
+        "item": "Missing blue-line duplicate times at stops 13, 14 and 15",
+        "status": "restored_from_source_image",
+        "note": "6 cells restored: stop 13 11:48 ABL, stop 13 15:48 D6, stop 14 11:50 ABL, stop 14 15:50 D6, stop 15 11:52 ABL, stop 15 15:52 D6."
+      },
+      {
+        "item": "Day filtering",
+        "status": "disabled_as_requested",
+        "note": "All timetable entries are available regardless of weekday/weekend label; no service times were removed."
+      },
+      {
+        "item": "Duty badge placement",
+        "status": "exact_time_only",
+        "note": "Pause/off-duty/colour change is shown on the matching event time (or exact matching departure). Only the immediate next scheduled service is labelled AVAILABLE IN X MIN."
       }
     ],
-    "caution": "Times in ENDE cells are estimates, not printed clock times. The lone blue “E” marker is not interpreted because the source has no legend for it."
+    "caution": "Times in ENDE cells are estimates, not printed clock times. The lone blue “E” marker is not interpreted because the source has no legend for it.",
+    "timeEntriesCount": 899
   }
 }
