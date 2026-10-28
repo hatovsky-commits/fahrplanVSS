@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101b27">
   <meta name="description" content="Nächste Vienna Sightseeing Bus-Abfahrt nach Haltestellennummer und Linie finden.">
-  <title>Next Bus · Vienna Sightseeing v11 Vorschau-Test v12</title>
+  <title>Next Bus · Vienna Sightseeing v14 Preview Clock Fix</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <style>
@@ -158,7 +158,7 @@ summary::-webkit-details-marker{display:none}summary::after{content:'＋';color:
 </head>
 <body>
 <header class="appbar"><div class="appbar-in">
-  <div class="brand"><span class="logo" aria-hidden="true">↗</span><div class="brand-copy"><div class="brand-title"><b>Vienna <em>Next Bus</em></b><span class="app-version">App v4.2 · Duty-Test v12 · by VassiliX</span></div><small id="validity">Fahrplan …</small></div></div>
+  <div class="brand"><span class="logo" aria-hidden="true">↗</span><div class="brand-copy"><div class="brand-title"><b>Vienna <em>Next Bus</em></b><span class="app-version">App v4.2 · Duty-Test v14 · by VassiliX</span></div><small id="validity">Fahrplan …</small></div></div>
   <div class="app-meta"><div class="clock" id="liveClock"><span class="status-dot"></span><b>--:--:--</b></div></div>
 </div></header>
 <main class="wrap">
@@ -267,7 +267,7 @@ function anyLineSwitchMarker(no,line,i){const a=tripAnnotation(no,line,i);return
 const TZ='Europe/Vienna';
 const $=id=>document.getElementById(id);
 let number='',selectedLine=null,override=false;
-let previewTimer=null,previewLastTick=0;
+let previewTimer=null,previewLastTick=0,previewCurrentMs=null;
 const timeToMin=s=>{let [h,m]=s.split(':').map(Number);return h*60+m};
 const secondsUntil=(time,now)=>(timeToMin(time)-now.minute)*60-(now.second||0);
 const waitLabel=(time,now)=>{const seconds=secondsUntil(time,now);return seconds<=0?'Jetzt':`in ${Math.ceil(seconds/60)} Min.`};
@@ -276,12 +276,33 @@ function viennaParts(date=new Date()){
   const d=Object.fromEntries(p.map(x=>[x.type,x.value]));
   return {iso:`${d.year}-${d.month}-${d.day}`,ymd:`${d.day}.${d.month}.${d.year}`,clock:`${d.hour}:${d.minute}:${d.second}`,minute:+d.hour*60 + +d.minute,second:+d.second,weekday:d.weekday};
 }
+function previewTimestampFromInputs(){
+  const iso=$('testDate')?.value,time=$('testTime')?.value;
+  if(!iso||!time||!/^\d{4}-\d{2}-\d{2}$/.test(iso)||!/^\d{2}:\d{2}$/.test(time))return null;
+  const [yy,mo,dd]=iso.split('-').map(Number),[hh,mm]=time.split(':').map(Number);
+  if(!Number.isFinite(Date.UTC(yy,mo-1,dd,hh,mm)))return null;
+  return Date.UTC(yy,mo-1,dd,hh,mm);
+}
+function writePreviewInputs(ms){
+  if(!Number.isFinite(ms))return;
+  const d=new Date(ms);
+  $('testDate').value=`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+  $('testTime').value=`${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
+}
 function context(){
   if(override && $('testDate').value && $('testTime').value){
-    const [hh,mm]=$('testTime').value.split(':').map(Number),iso=$('testDate').value;
+    let iso=$('testDate').value,time=$('testTime').value,second=0;
+    // While previewing, use the independent simulated timestamp, not the minute-only input field.
+    if(Number.isFinite(previewCurrentMs)){
+      const d=new Date(previewCurrentMs);
+      iso=`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+      time=`${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
+      second=d.getUTCSeconds();
+    }
+    const [hh,mm]=time.split(':').map(Number);
     // Date arithmetic is in UTC purely to get the selected date's weekday.
     const wd=new Date(iso+'T12:00:00Z').getUTCDay();
-    return {iso,ymd:iso.split('-').reverse().join('.'),clock:$('testTime').value,minute:hh*60+mm,second:0,weekday:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][wd],preview:true};
+    return {iso,ymd:iso.split('-').reverse().join('.'),clock:`${time}${Number.isFinite(previewCurrentMs)?':'+String(second).padStart(2,'0'):''}`,minute:hh*60+mm,second,weekday:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][wd],preview:true};
   }
   return viennaParts();
 }
@@ -682,42 +703,50 @@ async function refreshGPSStatus(){if(gpsRefreshBusy)return;gpsRefreshBusy=true;c
 function refreshClock(){const c=context();$('liveClock').innerHTML='';const indicator=document.createElement('span');indicator.className='status-dot';$('liveClock').append(indicator,document.createTextNode((override?'Vorschau':'Wien')+' · '+c.ymd.slice(0,6)+' · '));const bold=document.createElement('b');bold.textContent=c.clock;$('liveClock').append(bold);if(number&&Object.keys(STOPS[number]||{}).length>1)refreshLineOptionPreviews();if(selectedLine)renderResult()}
 function enablePreview(){
   $('testPanel').classList.remove('hidden');$('testToggle').setAttribute('aria-expanded','true');
-  if(!override){const c=viennaParts();$('testDate').value=c.iso<START?START:c.iso>END?END:c.iso;$('testTime').value=c.clock.slice(0,5)}
+  if(!override){const c=viennaParts();$('testDate').value=c.iso<START?START:c.iso>END?END:c.iso;$('testTime').value=c.clock.slice(0,5);previewCurrentMs=null}
   override=true;refreshClock()
 }
 function stopPreviewRun(){
  if(previewTimer!==null){clearInterval(previewTimer);previewTimer=null;}
+ previewLastTick=0;
  const btn=$('previewPlay');if(btn)btn.textContent='Vorschau starten ▶';
- const status=$('previewRunStatus');if(status)status.textContent='Vorschau pausiert. Datum und Uhrzeit einstellen und erneut starten.';
+ const status=$('previewRunStatus');if(status){
+   const c=context();
+   status.textContent=previewCurrentMs!==null?`Vorschau pausiert bei ${c.clock}. Uhrzeit einstellen oder erneut starten.`:'Vorschau pausiert. Datum und Uhrzeit einstellen und erneut starten.';
+ }
 }
 function startPreviewRun(){
  if(!$('testPanel').classList.contains('hidden')){override=true;}else{enablePreview();}
  if(!$('testDate').value||!$('testTime').value){toast('Bitte Datum und Uhrzeit für die Vorschau wählen.');return;}
  if(previewTimer!==null){stopPreviewRun();return;}
- previewLastTick=Date.now();dutyAlertSeen.clear();
+ if(!Number.isFinite(previewCurrentMs))previewCurrentMs=previewTimestampFromInputs();
+ if(!Number.isFinite(previewCurrentMs)){toast('Ungültige Vorschauzeit. Bitte Datum und Uhrzeit prüfen.');return;}
+ override=true;writePreviewInputs(previewCurrentMs);
+ previewLastTick=performance.now();dutyAlertSeen.clear();
  $('previewPlay').textContent='Vorschau pausieren Ⅱ';
- $('previewRunStatus').textContent=`Vorschau läuft: ${$('previewSpeed').selectedOptions[0]?.textContent||'simulierte Zeit'}; Pausen-/Dienstende-Warnungen werden mit der Vorschauzeit geprüft.`;
+ const speedText=$('previewSpeed').selectedOptions[0]?.textContent||'simulierte Zeit';
+ $('previewRunStatus').textContent=`Vorschau läuft · ${context().clock} · ${speedText}.`;
  refreshClock();updateDutyAlerts(TT);
+ // The clock is based on an independent millisecond timestamp. It won't stall when the HH:MM input drops seconds.
  previewTimer=window.setInterval(()=>{
-   const elapsed=Math.max(0,Date.now()-previewLastTick);previewLastTick=Date.now();
+   const perfNow=performance.now();
+   const elapsed=Math.max(0,perfNow-previewLastTick);previewLastTick=perfNow;
    const rate=Math.max(1,Number($('previewSpeed').value)||1);
-   const [yy,mo,dd]=$('testDate').value.split('-').map(Number);
-   const [hh,mm]=$('testTime').value.split(':').map(Number);
-   // Treat the timetable as local wall-clock time; UTC is used only for simple calendar arithmetic.
-   const next=new Date(Date.UTC(yy,mo-1,dd,hh,mm)+(elapsed/1000)*rate*60000);
-   const yyyy=next.getUTCFullYear(),month=String(next.getUTCMonth()+1).padStart(2,'0'),day=String(next.getUTCDate()).padStart(2,'0');
-   $('testDate').value=`${yyyy}-${month}-${day}`;
-   $('testTime').value=`${String(next.getUTCHours()).padStart(2,'0')}:${String(next.getUTCMinutes()).padStart(2,'0')}`;
-   if($('testDate').value>(END||'9999-12-31')){
-     $('testDate').value=END;$('testTime').value='23:59';stopPreviewRun();toast('Ende des Fahrplanzeitraums erreicht.');
+   previewCurrentMs+=elapsed*rate*60;
+   const maxDate=new Date(Date.UTC(Number(END.slice(0,4)),Number(END.slice(5,7))-1,Number(END.slice(8,10)),23,59,59,999));
+   if(previewCurrentMs>maxDate.getTime()){
+     previewCurrentMs=maxDate.getTime();writePreviewInputs(previewCurrentMs);refreshClock();updateDutyAlerts(TT);stopPreviewRun();toast('Ende des Fahrplanzeitraums erreicht.');return;
    }
+   writePreviewInputs(previewCurrentMs);
+   const simulated=context().clock;
+   $('previewRunStatus').textContent=`Vorschau läuft · Simulationszeit ${simulated} · ${speedText}.`;
    refreshClock();updateDutyAlerts(TT);
- },1000);
+ },250);
 }
 $('previewPlay').addEventListener('click',startPreviewRun);
 $('previewAlertDemo').addEventListener('click',()=>{
  stopPreviewRun();
- $('testDate').value='2026-10-29';$('testTime').value='12:55';override=true;
+ $('testDate').value='2026-10-29';$('testTime').value='12:55';override=true;previewCurrentMs=previewTimestampFromInputs();
  refreshClock();updateDutyAlerts(TT);
  toast('⚠ Testvorschau: rote D5-Pause am KHM um 13:00. Nächste gelistete Fahrt: R1 um 13:04.');
  $('previewRunStatus').textContent='Beispiel geladen: 29.10.2026, 12:55. Die simulierte Warnung steht direkt darunter; optional „Vorschau starten“ drücken, um die Zeit laufen zu lassen.';
@@ -726,12 +755,12 @@ $('stopNo').addEventListener('input',renderInput);
 $('clear').addEventListener('click',()=>{$('stopNo').value='';selectedLine=null;renderInput();$('stopNo').focus()});
 document.querySelectorAll('[data-stop]').forEach(b=>b.addEventListener('click',()=>choose(b.dataset.stop)));
 $('testToggle').addEventListener('click',()=>{
-  if(!$('testPanel').classList.contains('hidden')){stopPreviewRun();$('testPanel').classList.add('hidden');$('testToggle').setAttribute('aria-expanded','false');override=false;refreshClock();updateDutyAlerts(TT)}
+  if(!$('testPanel').classList.contains('hidden')){stopPreviewRun();$('testPanel').classList.add('hidden');$('testToggle').setAttribute('aria-expanded','false');override=false;previewCurrentMs=null;refreshClock();updateDutyAlerts(TT)}
   else enablePreview();
 });
-for(const el of [$('testDate'),$('testTime')])el.addEventListener('change',()=>{override=true;refreshClock();updateDutyAlerts(TT)});
+for(const el of [$('testDate'),$('testTime')])el.addEventListener('change',()=>{override=true;const ms=previewTimestampFromInputs();if(Number.isFinite(ms)){previewCurrentMs=ms;previewLastTick=performance.now()}refreshClock();updateDutyAlerts(TT)});
 $('previewSpeed').addEventListener('change',()=>{if(previewTimer!==null){$('previewRunStatus').textContent=`Vorschau läuft: ${$('previewSpeed').selectedOptions[0]?.textContent||'simulierte Zeit'}.`;}});
-$('resetTime').addEventListener('click',()=>{stopPreviewRun();override=false;$('testPanel').classList.add('hidden');$('testToggle').setAttribute('aria-expanded','false');refreshClock();updateDutyAlerts(TT)});
+$('resetTime').addEventListener('click',()=>{stopPreviewRun();override=false;$('testPanel').classList.add('hidden');$('testToggle').setAttribute('aria-expanded','false');previewCurrentMs=null;refreshClock();updateDutyAlerts(TT)});
 $('departureTimeline').addEventListener('pointerdown',()=>{userTimelineBrowsing=true});
 $('departureTimeline').addEventListener('wheel',()=>{userTimelineBrowsing=true},{passive:true});
 $('departureTimeline').addEventListener('scroll',updateTimelineButtons,{passive:true});
