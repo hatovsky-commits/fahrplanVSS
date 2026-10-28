@@ -291,18 +291,12 @@ function writePreviewInputs(ms){
 }
 function context(){
   if(override && $('testDate').value && $('testTime').value){
-    let iso=$('testDate').value,time=$('testTime').value,second=0;
-    // While previewing, use the independent simulated timestamp, not the minute-only input field.
-    if(Number.isFinite(previewCurrentMs)){
-      const d=new Date(previewCurrentMs);
-      iso=`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
-      time=`${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
-      second=d.getUTCSeconds();
-    }
+    // Use the visible preview controls as the single source of truth. Each simulated tick
+    // advances these fields, so the clock, departure calculations and duty alerts stay in sync.
+    const iso=$('testDate').value,time=$('testTime').value;
     const [hh,mm]=time.split(':').map(Number);
-    // Date arithmetic is in UTC purely to get the selected date's weekday.
     const wd=new Date(iso+'T12:00:00Z').getUTCDay();
-    return {iso,ymd:iso.split('-').reverse().join('.'),clock:`${time}${Number.isFinite(previewCurrentMs)?':'+String(second).padStart(2,'0'):''}`,minute:hh*60+mm,second,weekday:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][wd],preview:true};
+    return {iso,ymd:iso.split('-').reverse().join('.'),clock:time,minute:hh*60+mm,second:0,weekday:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][wd],preview:true};
   }
   return viennaParts();
 }
@@ -708,45 +702,45 @@ function enablePreview(){
 }
 function stopPreviewRun(){
  if(previewTimer!==null){clearInterval(previewTimer);previewTimer=null;}
- previewLastTick=0;
+ previewLastTick=0;previewCurrentMs=null;
  const btn=$('previewPlay');if(btn)btn.textContent='Vorschau starten ▶';
  const status=$('previewRunStatus');if(status){
    const c=context();
-   status.textContent=previewCurrentMs!==null?`Vorschau pausiert bei ${c.clock}. Uhrzeit einstellen oder erneut starten.`:'Vorschau pausiert. Datum und Uhrzeit einstellen und erneut starten.';
+   status.textContent=`Vorschau pausiert bei ${c.clock}. Uhrzeit einstellen oder erneut starten.`;
  }
 }
 function startPreviewRun(){
  if(!$('testPanel').classList.contains('hidden')){override=true;}else{enablePreview();}
  if(!$('testDate').value||!$('testTime').value){toast('Bitte Datum und Uhrzeit für die Vorschau wählen.');return;}
  if(previewTimer!==null){stopPreviewRun();return;}
- if(!Number.isFinite(previewCurrentMs))previewCurrentMs=previewTimestampFromInputs();
- if(!Number.isFinite(previewCurrentMs)){toast('Ungültige Vorschauzeit. Bitte Datum und Uhrzeit prüfen.');return;}
- override=true;writePreviewInputs(previewCurrentMs);
- previewLastTick=performance.now();dutyAlertSeen.clear();
+ const initialMs=previewTimestampFromInputs();
+ if(!Number.isFinite(initialMs)){toast('Ungültige Vorschauzeit. Bitte Datum und Uhrzeit prüfen.');return;}
+ previewCurrentMs=null;override=true;dutyAlertSeen.clear();
  $('previewPlay').textContent='Vorschau pausieren Ⅱ';
  const speedText=$('previewSpeed').selectedOptions[0]?.textContent||'simulierte Zeit';
  $('previewRunStatus').textContent=`Vorschau läuft · ${context().clock} · ${speedText}.`;
  refreshClock();updateDutyAlerts(TT);
- // The clock is based on an independent millisecond timestamp. It won't stall when the HH:MM input drops seconds.
+ // Deliberately simple clock: each second of real time advances the visible HH:MM field.
+ // All timetable and alert logic reads that same field via context().
  previewTimer=window.setInterval(()=>{
-   const perfNow=performance.now();
-   const elapsed=Math.max(0,perfNow-previewLastTick);previewLastTick=perfNow;
+   const currentMs=previewTimestampFromInputs();
+   if(!Number.isFinite(currentMs)){stopPreviewRun();toast('Ungültige Vorschauzeit.');return;}
    const rate=Math.max(1,Number($('previewSpeed').value)||1);
-   previewCurrentMs+=elapsed*rate*60;
-   const maxDate=new Date(Date.UTC(Number(END.slice(0,4)),Number(END.slice(5,7))-1,Number(END.slice(8,10)),23,59,59,999));
-   if(previewCurrentMs>maxDate.getTime()){
-     previewCurrentMs=maxDate.getTime();writePreviewInputs(previewCurrentMs);refreshClock();updateDutyAlerts(TT);stopPreviewRun();toast('Ende des Fahrplanzeitraums erreicht.');return;
+   const nextMs=currentMs+rate*60*1000;
+   const maxDate=Date.UTC(Number(END.slice(0,4)),Number(END.slice(5,7))-1,Number(END.slice(8,10)),23,59,0,0);
+   if(nextMs>maxDate){
+     writePreviewInputs(maxDate);refreshClock();updateDutyAlerts(TT);stopPreviewRun();toast('Ende des Fahrplanzeitraums erreicht.');return;
    }
-   writePreviewInputs(previewCurrentMs);
+   writePreviewInputs(nextMs);
    const simulated=context().clock;
    $('previewRunStatus').textContent=`Vorschau läuft · Simulationszeit ${simulated} · ${speedText}.`;
    refreshClock();updateDutyAlerts(TT);
- },250);
+ },1000);
 }
 $('previewPlay').addEventListener('click',startPreviewRun);
 $('previewAlertDemo').addEventListener('click',()=>{
  stopPreviewRun();
- $('testDate').value='2026-10-29';$('testTime').value='12:55';override=true;previewCurrentMs=previewTimestampFromInputs();
+ $('testDate').value='2026-10-29';$('testTime').value='12:55';override=true;previewCurrentMs=null;
  refreshClock();updateDutyAlerts(TT);
  toast('⚠ Testvorschau: rote D5-Pause am KHM um 13:00. Nächste gelistete Fahrt: R1 um 13:04.');
  $('previewRunStatus').textContent='Beispiel geladen: 29.10.2026, 12:55. Die simulierte Warnung steht direkt darunter; optional „Vorschau starten“ drücken, um die Zeit laufen zu lassen.';
@@ -758,7 +752,7 @@ $('testToggle').addEventListener('click',()=>{
   if(!$('testPanel').classList.contains('hidden')){stopPreviewRun();$('testPanel').classList.add('hidden');$('testToggle').setAttribute('aria-expanded','false');override=false;previewCurrentMs=null;refreshClock();updateDutyAlerts(TT)}
   else enablePreview();
 });
-for(const el of [$('testDate'),$('testTime')])el.addEventListener('change',()=>{override=true;const ms=previewTimestampFromInputs();if(Number.isFinite(ms)){previewCurrentMs=ms;previewLastTick=performance.now()}refreshClock();updateDutyAlerts(TT)});
+for(const el of [$('testDate'),$('testTime')])el.addEventListener('change',()=>{override=true;previewCurrentMs=null;refreshClock();updateDutyAlerts(TT)});
 $('previewSpeed').addEventListener('change',()=>{if(previewTimer!==null){$('previewRunStatus').textContent=`Vorschau läuft: ${$('previewSpeed').selectedOptions[0]?.textContent||'simulierte Zeit'}.`;}});
 $('resetTime').addEventListener('click',()=>{stopPreviewRun();override=false;$('testPanel').classList.add('hidden');$('testToggle').setAttribute('aria-expanded','false');previewCurrentMs=null;refreshClock();updateDutyAlerts(TT)});
 $('departureTimeline').addEventListener('pointerdown',()=>{userTimelineBrowsing=true});
