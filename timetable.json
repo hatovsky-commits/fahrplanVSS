@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "version": 11,
-  "published": "2026-10-28T20:50:00Z",
+  "version": 12,
+  "published": "2026-10-28T22:34:00Z",
   "title": "Vienna Sightseeing Fahrplan – exakte Busstatus",
   "validFrom": "2026-10-12",
   "validTo": "2026-11-01",
@@ -2246,8 +2246,8 @@
       "meaning": "Scheduled vehicle break; do not treat the gap as a missed trip."
     },
     "P/B": {
-      "label": "PAUSE",
-      "meaning": "Scheduled break marker as printed in the plan."
+      "label": "PAUSE → BLUE",
+      "meaning": "Scheduled pause followed by a blue-line departure. When the matching vehicle code is present at the same stop on the blue line, calculate pause duration as blue departure time minus the P/B marker time."
     },
     "Y/G": {
       "label": "FARBWECHSEL",
@@ -2272,6 +2272,10 @@
     "B/R": {
       "label": "FARBWECHSEL",
       "meaning": "Blue-to-red line change marker printed in the blue-line MAK/Wien-Mitte arrival row; same duty continues across the line-colour change."
+    },
+    "NT": {
+      "label": "NIGHT TOUR",
+      "meaning": "The marked vehicle is scheduled for a night tour at the printed time. NT is not an ENDE/off-duty marker and should not be shown as an ordinary sightseeing passenger departure."
     }
   },
   "planEvents": [
@@ -2879,9 +2883,19 @@
       "precedingStopName": "Grinzing/Himmelstraße",
       "precedingTime": "16:37",
       "sourceNote": "ENDE is printed in the final green-line duty column headed G1 at Votivkirche (Ankunft), without a clock time. The same column shows 16:37 at stop 39; the repeated stop-39-to-Votivkirche segment is 23 minutes, giving an inferred terminal arrival at 17:00."
+    },
+    {
+      "line": "red",
+      "stop": 2,
+      "stopName": "KHM / Kunsthistorisches Museum (Ankunft)",
+      "time": "18:00",
+      "marker": "NT",
+      "type": "night_tour",
+      "vehicleCode": "R1",
+      "sourceNote": "The source red-line KHM (Ankunft) row prints 18:00;NT in the R1 duty column. This indicates a night tour, not ENDE/off duty."
     }
   ],
-  "planEventsNote": "Version 11: source-plan marker rows are shown only at their exact station/time. The following passenger departure is marked AVAILABLE IN X MIN. Duty labels are not copied to every earlier row just because the displayed code contains a shared token. Six omitted blue-line repeated-time cells at stops 13, 14 and 15 have been restored from the source image. Weekday/weekend filtering is intentionally disabled as requested. Pause duration is calculated only when a matching same-code time at the same stop is available; otherwise the display states that the pause length is unconfirmed. Terminal times for printed ENDE cells without clock times remain explicitly marked as estimates.",
+  "planEventsNote": "Version 12: compact labels appear only on the relevant event/departure time. P/B pause duration is calculated from the next matching blue-line departure at the same stop. NT is a night-tour marker, not off duty. The next scheduled passenger departure is shown compactly on its own card. Day variants are intentionally not filtered.",
   "unclassifiedAnnotations": [
     {
       "line": "blue",
@@ -2896,7 +2910,7 @@
   ],
   "audit": {
     "source": "Busfahrplan Midesason 2026 A Plan, 12.10–01.11",
-    "auditDate": "2026-10-26",
+    "auditDate": "2026-10-28",
     "departureArraysComparedWithVersion5": "updated_from_source_missing_cells_restored",
     "checks": [
       {
@@ -2948,9 +2962,24 @@
         "item": "Duty badge placement",
         "status": "exact_time_only",
         "note": "Pause/off-duty/colour change is shown on the matching event time (or exact matching departure). Only the immediate next scheduled service is labelled AVAILABLE IN X MIN."
+      },
+      {
+        "item": "P/B pause duration and Blue return",
+        "status": "calculated_from_matching_code_at_same_stop",
+        "note": "ABL P/B at red KHM 10:30 returns on blue at KHM 12:02: 92 minutes. D6 P/B at red KHM 14:30 returns on blue at KHM 16:02: 92 minutes."
+      },
+      {
+        "item": "Red NT night-tour marker",
+        "status": "added_from_source",
+        "note": "R1 at red KHM (Ankunft) 18:00 is NT (night tour), not off duty."
+      },
+      {
+        "item": "Compact exact-time labels",
+        "status": "implemented",
+        "note": "Pause shows coffee icon and duration only; off duty shows stop icon + Off duty; colour changes show switch icon plus source and target colour; next service shows bus icon plus minutes; NT shows moon icon + NT."
       }
     ],
-    "caution": "Times in ENDE cells are estimates, not printed clock times. The lone blue “E” marker is not interpreted because the source has no legend for it.",
+    "caution": "Terminal times inferred from preceding-stop travel time remain estimates. Durations are displayed only when supported by a matching same-stop return or explicit line continuation; uncertain pause durations show only the coffee icon.",
     "timeEntriesCount": 899
   }
 }
