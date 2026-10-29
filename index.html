@@ -93,10 +93,13 @@ button{font:inherit;cursor:pointer}
 .trip-card{min-height:126px}
 .trip-duty-tags{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;max-width:100%;}
 .duty-badges{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:5px;}
-.duty-badge{display:inline-flex;align-items:center;justify-content:center;max-width:100%;padding:3px 5px;border:1px solid #496176;border-radius:6px;background:#26394a;color:#e8f2fa;font-size:.62rem;font-weight:900;line-height:1.15;text-align:center;white-space:normal;overflow-wrap:anywhere;}
-.trip-duty-tags .duty-badge{font-size:.62rem;padding:3px 4px;width:auto;max-width:100%;white-space:nowrap;}
+.duty-badge{display:inline-flex;align-items:center;justify-content:center;gap:7px;max-width:100%;padding:7px 10px;border:1px solid #496176;border-radius:9px;background:#26394a;color:#e8f2fa;font-size:.92rem;font-weight:950;line-height:1.15;text-align:center;white-space:normal;overflow-wrap:anywhere;letter-spacing:.015em;}
+.duty-icon{width:20px;height:20px;flex:0 0 20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.trip-duty-tags .duty-badge{font-size:.83rem;padding:6px 7px;gap:5px}
+.trip-duty-tags .duty-icon{width:17px;height:17px;flex-basis:17px}
+.trip-duty-tags .duty-badge{font-size:.83rem;padding:6px 7px;gap:5px;width:auto;max-width:100%;white-space:nowrap;}
 .trip-card{flex-basis:126px;min-height:154px}
-.trip-duty-tags .duty-badge{font-size:.62rem;padding:3px 4px;width:auto;max-width:100%;white-space:nowrap;}
+.trip-duty-tags .duty-badge{font-size:.83rem;padding:6px 7px;gap:5px;width:auto;max-width:100%;white-space:nowrap;}
 .duty-badge.duration{background:#24384b;border-color:#607d96;color:#eaf5ff}
 .duty-badge.available{background:#173d31;border-color:#35a878;color:#cbffe9}
 .duty-badge.event-arrival{background:#4b3217;border-color:#d28a31;color:#ffe0ad}
@@ -179,7 +182,7 @@ summary::-webkit-details-marker{display:none}summary::after{content:'＋';color:
 </head>
 <body>
 <header class="appbar"><div class="appbar-in">
-  <div class="brand"><span class="logo" aria-hidden="true">↗</span><div class="brand-copy"><div class="brand-title"><b>Vienna <em>Next Bus</em></b><span class="app-version">App v4.2 · Duty-Test v21 · by VassiliX</span></div><small id="validity">Fahrplan …</small></div></div>
+  <div class="brand"><span class="logo" aria-hidden="true">↗</span><div class="brand-copy"><div class="brand-title"><b>Vienna <em>Next Bus</em></b><span class="app-version">App v4.2 · Duty-Test v23 · by VassiliX</span></div><small id="validity">Fahrplan …</small></div></div>
   <div class="app-meta"><div class="clock" id="liveClock"><span class="status-dot"></span><b>--:--:--</b></div></div>
 </div></header>
 <main class="wrap">
@@ -221,7 +224,7 @@ summary::-webkit-details-marker{display:none}summary::after{content:'＋';color:
         </div>
       </div>
       <div class="departure-timeline" id="departureTimeline" tabindex="0" role="region" aria-label="Alle Abfahrten. Horizontal wischen für frühere und spätere Fahrten."></div>
-      <div class="timeline-help">☕ Pause length · ⛔ Off duty · 🔀 Line change · 🌙 Night tour · 🚌 Next bus</div>
+      <div class="timeline-help">Pause · Off duty · Colour change · Night tour · Next bus</div>
     </div>
     <div class="small-note" id="resultNote"></div>
   </section>
@@ -249,7 +252,7 @@ summary::-webkit-details-marker{display:none}summary::after{content:'＋';color:
       <div class="track-foot" style="margin:10px 16px 14px">Die Freigabe kann nicht automatisch erteilt werden. Wenn die Karte auch danach grau bleibt, öffne die Originalseite in einem neuen Tab und bestätige dort ggf. Cookies bzw. „Activate OpenStreetMap with one click“.</div>
     </div>
   </section>
-  <footer class="footer"><div class="tt-status" id="ttStatus"></div><button class="link-button" id="ttCheck" type="button">Nach Update suchen</button><p>Abfahrtszeiten plus vorsichtige GPS-Verkehrsschätzung; Ankunftszeiten werden nicht zur Statusberechnung verwendet. Keine garantierte Echtzeit-Pünktlichkeit. Alle Uhrzeiten in Wien (Europe/Vienna).</p><div class="footer-version">v4.2 · Duty Status v20 · by VassiliX</div></footer><div class="toast" id="toast" role="status"></div>
+  <footer class="footer"><div class="tt-status" id="ttStatus"></div><button class="link-button" id="ttCheck" type="button">Nach Update suchen</button><p>Abfahrtszeiten plus vorsichtige GPS-Verkehrsschätzung; Ankunftszeiten werden nicht zur Statusberechnung verwendet. Keine garantierte Echtzeit-Pünktlichkeit. Alle Uhrzeiten in Wien (Europe/Vienna).</p><div class="footer-version">v4.2 · Duty Status v23 · by VassiliX</div></footer><div class="toast" id="toast" role="status"></div>
 </main>
 <script>
 'use strict';
@@ -464,15 +467,27 @@ function dutyRowKey(stop,line,time,code){return `${String(stop)}|${line}|${time}
 function renderDutyBadgeNodes(container,badges){
   if(!container)return;
   container.replaceChildren();
-  for(const item of (badges||[])){
+  // Availability is shown in the app's normal countdown position, not as a separate icon/badge.
+  const visibleBadges=(badges||[]).filter(item=>item?.kind!=='available');
+  for(const item of visibleBadges){
     const node=document.createElement('span');
     node.className=`duty-badge ${item.kind||'pause'}`;
-    node.textContent=item.text;
+    const kind=item.kind||'pause';
+    const icons={
+      pause:'<svg class="duty-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M4 7h16"/><path d="M5 7l1 13h12l1-13"/><path d="M9 11v5"/><path d="M15 11v5"/></svg>',
+      'end-duty':'<svg class="duty-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></svg>',
+      'colour-change':'<svg class="duty-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3l4 4-4 4"/><path d="M3 7h18"/><path d="m7 21-4-4 4-4"/><path d="M21 17H3"/></svg>',
+      'night-tour':'<svg class="duty-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/><path d="m17 3 1 2 2 .3-1.5 1.4.4 2-1.9-1-1.8 1 .3-2L14 5.3l2-.3Z"/></svg>',
+      available:'<svg class="duty-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10"/><path d="M3 16h18l-1 4h-3l-1-2H8l-1 2H4Z"/><path d="M7 9h3M14 9h3"/><circle cx="7.5" cy="15" r=".5"/><circle cx="16.5" cy="15" r=".5"/></svg>',
+      'event-arrival':'<svg class="duty-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'
+    };
+    const label=String(item.text||'').replace(/^[☕⛔🔀🌙🚌]+\s*/, '').replace(/^(Off duty)$/i,'OFF DUTY').replace(/^pause\b/i,'PAUSE');
+    node.innerHTML=(icons[kind]||icons['event-arrival'])+`<span>${label.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
     node.title=item.title||item.text;
     node.setAttribute('aria-label',item.title||item.text);
     container.append(node);
   }
-  container.classList.toggle('hidden',!(badges&&badges.length));
+  container.classList.toggle('hidden',visibleBadges.length===0);
 }
 function dutyLineName(line){return ({blue:'BLUE',red:'RED',yellow:'YELLOW',green:'GREEN'}[line]||String(line||'').toUpperCase());}
 function dutyClockStatus(info){
@@ -482,28 +497,28 @@ function dutyClockStatus(info){
 function dutyDurationLabel(info){
   const d=info.durationInfo;
   const stopName=String(info.stopName||`Haltestelle ${info.stop}`).replace(/\s*\((?:Ankunft|Abfahrt)\)\s*/ig,'').trim();
-  if(!d||!Number.isFinite(Number(d.minutes)))return {text:'☕',title:`Pause bei ${stopName} um ${info.time}. Die Rückkehrzeit ist im Plan nicht sicher zuzuordnen.`};
+  if(!d||!Number.isFinite(Number(d.minutes)))return {text:'PAUSE',title:`Pause bei ${stopName} um ${info.time}. Die Rückkehrzeit ist im Plan nicht sicher zuzuordnen.`};
   const minutes=Math.max(0,Math.round(Number(d.minutes)));
   let title=`Pause ${info.time} bis ${d.time||'Rückkehrzeit unbekannt'} (${minutes} Minuten).`;
   if(d.source==='pause-to-blue')title=`P/B: ${info.vehicleCode} kommt um ${info.time} in die Pause und fährt auf Blau am selben Halt um ${d.time} weiter. ${minutes} Minuten.`;
   else if(d.source==='continuation')title=`Pausen-/Farbwechsel: ${info.time} bis zur passenden Weiterfahrt um ${d.time}. ${minutes} Minuten.`;
   else if(d.source==='same-stop')title=`Berechnet aus der nächsten passenden Abfahrt desselben Fahrzeugs an diesem Halt: ${info.time} bis ${d.time}.`;
   else if(d.source==='next-listed-run')title=`Nächster passender Eintrag ${d.time}; der Plan belegt nicht eindeutig, dass dies das tatsächliche Pausenende ist.`;
-  return {text:`☕ ${minutes}m`,title};
+  return {text:`PAUSE ${minutes}m`,title};
 }
 function dutyEventBadgesForInfo(info){
   if(!info)return [];
   const lineName=line=>({blue:'BLUE',red:'RED',yellow:'YELLOW',green:'GREEN'}[line]||String(line||'').toUpperCase());
   const stopName=String(info.stopName||`Haltestelle ${info.stop}`).replace(/\s*\((?:Ankunft|Abfahrt)\)\s*/ig,'').trim();
   if(info.isContinuation){
-    return [{text:`🔀 ${lineName(info.fromLine)} → ${lineName(info.line)}`,title:`Fahrzeug ${info.vehicleCode} wechselt von ${lineName(info.fromLine)} zu ${lineName(info.line)}; Eintrag ${info.time} bei ${stopName}.`,kind:'colour-change'}];
+    return [{text:`${lineName(info.fromLine)} → ${lineName(info.line)}`,title:`Fahrzeug ${info.vehicleCode} wechselt von ${lineName(info.fromLine)} zu ${lineName(info.line)}; Eintrag ${info.time} bei ${stopName}.`,kind:'colour-change'}];
   }
   if(info.isNightTour||String(info.marker||'').toUpperCase()==='NT'){
     return [{text:'🌙 NT',title:`${info.vehicleCode} fährt laut Plan um ${info.time} eine Nachttour. NT ist kein Dienstende und keine reguläre Sightseeing-Abfahrt.`,kind:'night-tour'}];
   }
   if(info.isEnd){
     const estimate=info.timeInferred?' Ankunftszeit ist aus dem vorherigen Halt geschätzt.':'';
-    return [{text:'⛔ Off duty',title:`${info.vehicleCode} beendet den Dienst bei ${stopName} um ${info.time}.${estimate}`,kind:'end-duty'}];
+    return [{text:'OFF DUTY',title:`${info.vehicleCode} beendet den Dienst bei ${stopName} um ${info.time}.${estimate}`,kind:'end-duty'}];
   }
   // P/Y and P/B are primarily pause markers. Put the colour transition on the actual continuation time instead.
   if(info.isPause){
@@ -512,7 +527,7 @@ function dutyEventBadgesForInfo(info){
   }
   if(info.isColour){
     const from=lineName(info.transition?.from||info.line),to=lineName(info.transition?.to||info.continuation?.line||info.durationInfo?.line);
-    return [{text:`🔀 ${from} → ${to}`,title:`Fahrzeug ${info.vehicleCode} wechselt bei ${stopName} um ${info.time} von ${from} zu ${to}.`,kind:'colour-change'}];
+    return [{text:`${from} → ${to}`,title:`Fahrzeug ${info.vehicleCode} wechselt bei ${stopName} um ${info.time} von ${from} zu ${to}.`,kind:'colour-change'}];
   }
   return [{text:String(info.marker||'PLAN'),title:`${info.vehicleCode} · ${info.time} · ${stopName}`,kind:'event-arrival'}];
 }
@@ -595,7 +610,7 @@ function buildDutyBadgeIndex(){
     if(target?.time&&target?.line){
       const targets=rowsAt(target.stop??info.stop,target.line).filter(r=>r.time===target.time&&dutyCodeHas(r.code,target.vehicleCode||info.vehicleCode));
       const labelFrom=info.line;
-      const continuationBadge={text:`🔀 ${dutyLineName(labelFrom)} → ${dutyLineName(target.line)}`,title:`Same vehicle ${target.vehicleCode||info.vehicleCode} resumes on ${dutyLineName(target.line)} at ${target.time} (stop ${target.stop??info.stop}).`,kind:'colour-change',eventKey:info.eventKey};
+      const continuationBadge={text:`${dutyLineName(labelFrom)} → ${dutyLineName(target.line)}`,title:`Same vehicle ${target.vehicleCode||info.vehicleCode} resumes on ${dutyLineName(target.line)} at ${target.time} (stop ${target.stop??info.stop}).`,kind:'colour-change',eventKey:info.eventKey};
       if(targets.length){for(const row of targets)add(row,continuationBadge);}
       else if(target.stop!==undefined){
         const targetKey=`continuation|${info.eventKey}|${target.line}|${target.stop}|${target.time}`;
@@ -617,7 +632,7 @@ function buildDutyBadgeIndex(){
   }
   for(const {row,info} of availability.values()){
     const delta=row.minute-c.minute;
-    add(row,{text:delta===0?'🚌 NOW':`🚌 IN ${delta}m`,title:`Next scheduled passenger departure after ${info.vehicleCode}'s ${String(info.marker||info.type).toUpperCase()} marker at ${info.stopName} at ${info.time}: ${row.code} at ${row.time}.`,kind:'available',eventKey:info.eventKey,dynamic:{type:'available',departureTime:row.time,vehicleCode:row.code,eventTime:info.time,message:'next scheduled passenger service'}});
+    add(row,{text:delta===0?'NOW':`IN ${delta}m`,title:`Next scheduled passenger departure after ${info.vehicleCode}'s ${String(info.marker||info.type).toUpperCase()} marker at ${info.stopName} at ${info.time}: ${row.code} at ${row.time}.`,kind:'available',eventKey:info.eventKey,dynamic:{type:'available',departureTime:row.time,vehicleCode:row.code,eventTime:info.time,message:'next scheduled passenger service'}});
   }
   for(const arr of dutyTimelineEventsByStopLine.values())arr.sort((a,b)=>a.minute-b.minute||String(a.vehicleCode).localeCompare(String(b.vehicleCode)));
 }
@@ -627,7 +642,7 @@ function resolveDynamicDutyBadge(item,stopTime){
   if(d.type==='available'){
     const remaining=timeToMin(d.departureTime)-now.minute;
     if(remaining<0)return null;
-    const text=remaining===0?'🚌 NOW':`🚌 IN ${remaining}m`;
+    const text=remaining===0?'NOW':`IN ${remaining}m`;
     return {...item,text};
   }
   return item;
@@ -687,8 +702,9 @@ function renderDepartureTimeline(stop,now,valid,weekendExcluded){
     }else{
       const badges=getDutyBadges(number,selectedLine,item.time,item.code);
       renderDutyBadgeNodes(card.querySelector('.trip-duty-tags'),badges);
-      const hasAvailability=badges.some(b=>b.kind==='available');
-      card.querySelector('.trip-tag').textContent=!valid?'':weekendExcluded?'':isPast?'Vorbei':hasAvailability?'':waitLabel(item.time,now);
+      // Show every upcoming passenger departure's normal countdown under its bus code.
+      // An event-related next service uses the same display as every other available bus.
+      card.querySelector('.trip-tag').textContent=!valid?'':weekendExcluded?'':isPast?'Vorbei':waitLabel(item.time,now);
     }
     if(isCurrent)card.setAttribute('aria-current','true');else card.removeAttribute('aria-current');
   });
