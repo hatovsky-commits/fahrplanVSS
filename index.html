@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101b27">
   <meta name="description" content="Nächste Vienna Sightseeing Bus-Abfahrt nach Haltestellennummer und Linie finden.">
-  <title>Next Bus · Vienna Sightseeing v20 Exact-Time Bus Status</title>
+  <title>Next Bus · Vienna Sightseeing v24 Lucide + LED Status</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://c.webfontfree.com/c.js?f=BusLedDisplaySmall"></script>
 <style>
 :root{color-scheme:dark;--bg:#0b141d;--panel:#142230;--panel2:#1a2c3d;--line:#2a3f52;--text:#f5f8fb;--sub:#a9b8c7;--muted:#7a8fa2;--yellow:#f6c73f;--blue:#20acef;--red:#f04f54;--green:#4ed49b;--r:20px;--sat:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}html{scroll-behavior:smooth}
@@ -107,6 +108,9 @@ button{font:inherit;cursor:pointer}
 .trip-card.is-event .trip-tag{color:#ffc56b}
 .trip-card.is-event.is-active-event{border:2px solid #d28a31;box-shadow:0 0 0 3px #d28a3125}
 
+/* LED matrix font is deliberately limited to PAUSE and OFF DUTY text. */
+.duty-badge.pause > span,.duty-badge.end-duty > span{font-family:'BusLedDisplaySmall',monospace;font-size:1.12em;font-weight:400;letter-spacing:.045em;line-height:1.1;text-transform:uppercase;font-variant-numeric:tabular-nums;}
+.trip-duty-tags .duty-badge.pause > span,.trip-duty-tags .duty-badge.end-duty > span{font-size:1.02em;letter-spacing:.025em;}
 .duty-badge.pause{background:#163b58;border-color:#238bd0;color:#d6efff;}
 .duty-badge.after-pause{background:#42351b;border-color:#b68b00;color:#ffecae;}
 .duty-badge.end-duty{background:#4b3217;border-color:#d28a31;color:#ffe0ad;}
@@ -182,7 +186,7 @@ summary::-webkit-details-marker{display:none}summary::after{content:'＋';color:
 </head>
 <body>
 <header class="appbar"><div class="appbar-in">
-  <div class="brand"><span class="logo" aria-hidden="true">↗</span><div class="brand-copy"><div class="brand-title"><b>Vienna <em>Next Bus</em></b><span class="app-version">App v4.2 · Duty-Test v23 · by VassiliX</span></div><small id="validity">Fahrplan …</small></div></div>
+  <div class="brand"><span class="logo" aria-hidden="true">↗</span><div class="brand-copy"><div class="brand-title"><b>Vienna <em>Next Bus</em></b><span class="app-version">App v4.2 · Duty-Test v24 · by VassiliX</span></div><small id="validity">Fahrplan …</small></div></div>
   <div class="app-meta"><div class="clock" id="liveClock"><span class="status-dot"></span><b>--:--:--</b></div></div>
 </div></header>
 <main class="wrap">
@@ -252,7 +256,7 @@ summary::-webkit-details-marker{display:none}summary::after{content:'＋';color:
       <div class="track-foot" style="margin:10px 16px 14px">Die Freigabe kann nicht automatisch erteilt werden. Wenn die Karte auch danach grau bleibt, öffne die Originalseite in einem neuen Tab und bestätige dort ggf. Cookies bzw. „Activate OpenStreetMap with one click“.</div>
     </div>
   </section>
-  <footer class="footer"><div class="tt-status" id="ttStatus"></div><button class="link-button" id="ttCheck" type="button">Nach Update suchen</button><p>Abfahrtszeiten plus vorsichtige GPS-Verkehrsschätzung; Ankunftszeiten werden nicht zur Statusberechnung verwendet. Keine garantierte Echtzeit-Pünktlichkeit. Alle Uhrzeiten in Wien (Europe/Vienna).</p><div class="footer-version">v4.2 · Duty Status v23 · by VassiliX</div></footer><div class="toast" id="toast" role="status"></div>
+  <footer class="footer"><div class="tt-status" id="ttStatus"></div><button class="link-button" id="ttCheck" type="button">Nach Update suchen</button><p>Abfahrtszeiten plus vorsichtige GPS-Verkehrsschätzung; Ankunftszeiten werden nicht zur Statusberechnung verwendet. Keine garantierte Echtzeit-Pünktlichkeit. Alle Uhrzeiten in Wien (Europe/Vienna).</p><div class="footer-version">v4.2 · Duty Status v24 · by VassiliX</div></footer><div class="toast" id="toast" role="status"></div>
 </main>
 <script>
 'use strict';
@@ -474,12 +478,12 @@ function renderDutyBadgeNodes(container,badges){
     node.className=`duty-badge ${item.kind||'pause'}`;
     const kind=item.kind||'pause';
     const icons={
-      pause:'<svg class="duty-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M4 7h16"/><path d="M5 7l1 13h12l1-13"/><path d="M9 11v5"/><path d="M15 11v5"/></svg>',
-      'end-duty':'<svg class="duty-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></svg>',
-      'colour-change':'<svg class="duty-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3l4 4-4 4"/><path d="M3 7h18"/><path d="m7 21-4-4 4-4"/><path d="M21 17H3"/></svg>',
-      'night-tour':'<svg class="duty-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/><path d="m17 3 1 2 2 .3-1.5 1.4.4 2-1.9-1-1.8 1 .3-2L14 5.3l2-.3Z"/></svg>',
-      available:'<svg class="duty-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10"/><path d="M3 16h18l-1 4h-3l-1-2H8l-1 2H4Z"/><path d="M7 9h3M14 9h3"/><circle cx="7.5" cy="15" r=".5"/><circle cx="16.5" cy="15" r=".5"/></svg>',
-      'event-arrival':'<svg class="duty-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'
+      pause:'<svg class="duty-icon lucide lucide-coffee" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/></svg>',
+      'end-duty':'<svg class="duty-icon lucide lucide-circle-x" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>',
+      'colour-change':'<svg class="duty-icon lucide lucide-arrow-left-right" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>',
+      'night-tour':'<svg class="duty-icon lucide lucide-moon-star" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.463.402.807a6 6 0 0 0 8.268 8.268c.344-.215.829-.003.803.397"/><path d="M20 3v4"/><path d="M22 5h-4"/></svg>',
+      available:'<svg class="duty-icon lucide lucide-bus-front" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6v6"/><path d="M16 6v6"/><path d="M2 12h20"/><path d="M12 12v8"/><path d="M4 16h16"/><path d="M2 6h20"/><path d="M4 20h16"/><path d="M4 2h16"/><path d="M2 6v12a2 2 0 0 0 2 2"/><path d="M22 6v12a2 2 0 0 1-2 2"/></svg>',
+      'event-arrival':'<svg class="duty-icon lucide lucide-clock" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'
     };
     const label=String(item.text||'').replace(/^[☕⛔🔀🌙🚌]+\s*/, '').replace(/^(Off duty)$/i,'OFF DUTY').replace(/^pause\b/i,'PAUSE');
     node.innerHTML=(icons[kind]||icons['event-arrival'])+`<span>${label.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
