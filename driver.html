@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#091622">
+  <meta name="description" content="Fahrerdienstplan Vienna Sightseeing. Nächste Haltestelle, Pausen, Linienwechsel und Dienstende aus dem Winterfahrplan.">
+  <title>VSS Driver · Winterfahrplan</title>
+  <style>
+    :root{color-scheme:dark;--bg:#091622;--surface:#122338;--surface2:#172b42;--border:#2b435b;--text:#f0f7ff;--muted:#a4b6c8;--yellow:#ffd35b;--blue:#20acef;--red:#f04f54;--gold:#f6c73f;--green:#45d59b;--current:#20acef}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:radial-gradient(ellipse 110% 400px at 45% -130px,#234763 0,transparent 72%),var(--bg);color:var(--text);font:16px/1.42 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;-webkit-tap-highlight-color:transparent;padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--yellow);outline-offset:3px}
+    .shell{max-width:940px;margin:0 auto;padding:18px 18px 26px}
+    .topbar{border-bottom:1px solid #294056;background:#0b1a29e8;position:sticky;top:0;z-index:15;backdrop-filter:blur(14px)}
+    .top-inner{max-width:940px;min-height:76px;margin:auto;padding:12px 18px;display:flex;align-items:center;gap:12px;justify-content:space-between}
+    .brand{display:flex;gap:10px;align-items:center;min-width:0}
+    .brand-icon{background:linear-gradient(135deg,#ffdd72,#e9aa22);color:#132033;border-radius:14px;width:44px;height:44px;display:grid;place-items:center;font-size:24px;flex:none;box-shadow:0 4px 19px #e8b33c33}
+    .brand-title{font-weight:920;letter-spacing:-.035em;font-size:1.08rem;line-height:1.1}
+    .brand-sub{font-size:.7rem;color:var(--muted);font-weight:690;margin-top:3px}
+    .clock{text-align:right;flex:none;font-weight:870;font-variant-numeric:tabular-nums;letter-spacing:-.035em;font-size:1.45rem;line-height:1.12}
+    .clock small{display:block;font-size:.64rem;font-weight:660;color:var(--muted);letter-spacing:0;margin-top:4px}
+    .notice{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid #32506b;background:#132a40;border-radius:12px;color:#c4deef;font-size:.8rem;font-weight:650;margin-bottom:17px}
+    .notice svg{flex:none}
+    h1,h2,h3,p{margin-top:0}
+    .eyebrow{font-size:.73rem;letter-spacing:.085em;color:var(--muted);text-transform:uppercase;font-weight:800;margin:0 0 10px}
+    .section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+    .section-head h2{font-size:1.1rem;letter-spacing:-.02em;margin:0;font-weight:840}
+    .card{background:linear-gradient(160deg,#1a3047,#102134);border:1px solid var(--border);border-radius:19px;box-shadow:0 11px 28px #0002}
+    .select-card{padding:18px;margin-bottom:16px}
+    .driver-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px}
+    .driver-button{min-height:62px;border:1.5px solid #3a536b;border-radius:13px;background:#112236;color:#eaf2f8;font-weight:950;font-size:1.15rem;letter-spacing:.02em;position:relative;overflow:hidden}
+    .driver-button:hover{border-color:#7996af}
+    .driver-button[aria-pressed=true]{background:#ffd35b;color:#18222c;border-color:#ffda76;box-shadow:0 0 0 3px #ffd35b24}
+    .driver-button[aria-pressed=true]::after{content:'✓';position:absolute;top:1px;right:6px;font-size:.65rem}
+    .driver-description{margin-top:11px;font-size:.75rem;color:var(--muted)}
+    .status-line{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px}
+    .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid #466178;background:#1c364d;font-weight:850;font-size:.75rem;min-height:30px}
+    .chip.line{color:var(--current);border-color:color-mix(in srgb,var(--current),#34495e 50%);background:color-mix(in srgb,var(--current),#142436 88%)}
+    .chip.muted{color:#bdccdd}
+    .hero{--current:var(--blue);overflow:hidden;border-color:color-mix(in srgb,var(--current),#334a5f 45%);background:radial-gradient(ellipse 90% 240px at 0% 0%,color-mix(in srgb,var(--current),transparent 86%),transparent 75%),linear-gradient(155deg,#1b3047,#0e1d2d);padding:22px;margin-bottom:14px;position:relative}
+    .hero::before{content:'';position:absolute;inset:0 0 auto;height:4px;background:var(--current)}
+    .hero-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .hero h2{font-size:clamp(1.75rem,5vw,2.65rem);line-height:1.16;letter-spacing:-.045em;margin:5px 0 10px;font-weight:920;overflow-wrap:anywhere}
+    .hero-main-copy{font-size:.94rem;color:#c6d7e6;line-height:1.5;margin:4px 0 0}
+    .hero-date{font-size:.74rem;font-weight:750;color:var(--muted)}
+    .route-mini{display:grid;grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr);align-items:center;gap:6px;margin-top:20px;padding:13px 12px;background:#0a1929b0;border:1px solid #2c455a;border-radius:13px}
+    .route-mini strong{font-size:.9rem;line-height:1.25;display:block;margin-top:2px;overflow-wrap:anywhere}
+    .route-mini .label{font-size:.67rem;color:var(--muted);font-weight:820;text-transform:uppercase;letter-spacing:.07em}
+    .route-mini .arrow{color:var(--yellow);text-align:center;font-size:1.45rem;font-weight:800}
+    .route-mini .right{text-align:right}
+    .track{height:7px;background:#0a1b2b;border-radius:100px;overflow:hidden;margin-top:12px}
+    .track>div{height:100%;background:var(--current);border-radius:inherit;transition:width .3s}
+    .hero-note{margin-top:11px;font-size:.73rem;color:#9db5c7}
+    .two{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;margin-bottom:16px}
+    .panel{padding:19px;min-width:0}
+    .next{border-color:color-mix(in srgb,var(--current),#2b435b 50%);background:linear-gradient(155deg,#1a3449,#0f2437)}
+    .big-stop{display:flex;align-items:center;gap:13px;margin:12px 0 9px}
+    .stop-bubble{display:grid;place-items:center;flex:none;width:66px;height:66px;border-radius:18px;background:var(--yellow);color:#172334;font-size:1.5rem;font-weight:950;letter-spacing:-.05em}
+    .stop-bubble.small{width:42px;height:42px;font-size:1.02rem;border-radius:13px}
+    .big-stop h3{font-size:1.15rem;font-weight:880;letter-spacing:-.025em;line-height:1.18;margin:0;overflow-wrap:anywhere}
+    .big-stop .sub{font-size:.75rem;color:var(--muted);margin-top:5px}
+    .departure-block{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:16px;flex-wrap:wrap}
+    .departure-block .time{font-size:2.8rem;font-weight:930;line-height:1;letter-spacing:-.065em;font-variant-numeric:tabular-nums}
+    .departure-block .count{color:var(--yellow);font-weight:900;font-size:1.2rem;font-variant-numeric:tabular-nums}
+    .event-title{display:flex;align-items:center;gap:9px;margin:10px 0 7px;font-size:1.12rem;font-weight:850}
+    .event-icon{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#24415a;font-size:20px}
+    .event-time{font-variant-numeric:tabular-nums;font-weight:900;color:var(--yellow);font-size:1.6rem;letter-spacing:-.035em}
+    .small{font-size:.78rem;color:var(--muted);line-height:1.5}
+    .inline-info{display:inline-flex;align-items:center;gap:6px;color:#c6ddec;font-weight:740;font-size:.8rem;margin-top:11px}
+    .schedule-card{padding:19px}
+    .schedule-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+    .schedule-head h2{font-size:1.16rem;font-weight:880;margin:0;letter-spacing:-.02em}
+    .toggle{border:1px solid #405c75;background:#172e43;color:#e2edf7;border-radius:10px;padding:10px 12px;font-size:.78rem;font-weight:780;min-height:44px}
+    .timeline{padding:5px 0 0}
+    .item{display:grid;grid-template-columns:63px 21px minmax(0,1fr);gap:7px;min-height:62px;position:relative}
+    .item:not(:last-child)::before{content:'';position:absolute;top:20px;bottom:-1px;width:2px;left:72px;background:#344e65}
+    .item-time{text-align:right;padding-top:12px;font-size:.91rem;font-weight:880;font-variant-numeric:tabular-nums;color:#c9d9e8}
+    .item-dot{position:relative;z-index:1;width:12px;height:12px;border:3px solid var(--event-color,#627d95);background:#13283a;border-radius:50%;margin:15px auto 0}
+    .item-body{display:flex;align-items:center;gap:11px;justify-content:space-between;border-bottom:1px solid #2d4459;padding:7px 2px 12px;min-width:0}
+    .item:last-child .item-body{border-bottom:0}
+    .item-main{min-width:0}
+    .item-main b{display:block;line-height:1.25;font-size:.92rem;overflow-wrap:anywhere}
+    .item-desc{margin-top:4px;color:#90a6b9;font-size:.72rem;font-weight:700}
+    .item-tag{display:inline-flex;align-items:center;gap:5px;border-radius:8px;background:#243c51;border:1px solid #39546b;padding:5px 7px;font-size:.72rem;line-height:1.15;font-weight:850;white-space:nowrap;flex:none}
+    .item.special{--event-color:var(--yellow)}
+    .item.special .item-body{background:#3c331820;border-radius:7px}
+    .item.past{opacity:.49}
+    .item.now .item-body{border-radius:11px;padding-inline:9px;margin-left:-9px;background:#1b3750;border:1px solid #4a7694}
+    .item.now .item-dot{border-color:var(--yellow);background:var(--yellow);box-shadow:0 0 0 5px #ffd35b24}
+    .empty{padding:25px 12px;text-align:center;color:#b7c9d8}
+    .setup{margin-top:15px;border:1px solid #30495f;border-radius:15px;overflow:hidden;background:#112439}
+    .setup summary{padding:15px;cursor:pointer;font-size:.85rem;font-weight:830;list-style:none;display:flex;align-items:center;justify-content:space-between}
+    .setup summary::-webkit-details-marker{display:none}
+    .setup summary::after{content:'⌄';font-size:1.25rem;color:var(--yellow)}
+    .setup[open] summary::after{content:'⌃'}
+    .setup-content{padding:0 15px 15px;display:flex;align-items:end;gap:10px;flex-wrap:wrap}
+    .setup label{display:flex;flex-direction:column;gap:5px;color:#b7cbdc;font-size:.72rem;font-weight:790}
+    .setup input{background:#091a28;border:1px solid #46627b;color:#fff;min-height:45px;padding:7px 10px;border-radius:9px;max-width:155px;color-scheme:dark}
+    .warning{padding:11px 13px;border-radius:10px;border:1px solid #aa7740;background:#44321b;color:#ffe0af;font-size:.79rem;font-weight:730;margin:12px 0}
+    .error{border-color:#ae5151!important;background:#431d27!important;color:#ffd7d7!important}
+    .help{font-size:.75rem;color:var(--muted);margin-top:9px}
+    footer{margin-top:20px;padding:18px 2px;color:#8ca4b8;border-top:1px solid #2b445a;font-size:.76rem;line-height:1.65}
+    footer strong{color:#b9d4e5}
+    .bottom-nav{position:sticky;bottom:0;background:#081622f2;border-top:1px solid #314a61;padding:7px max(16px,env(safe-area-inset-left)) calc(7px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-right));display:flex;justify-content:center;gap:12px;z-index:10;backdrop-filter:blur(12px)}
+    .bottom-nav a{display:inline-flex;justify-content:center;align-items:center;gap:5px;min-width:130px;text-decoration:none;border:1px solid #324b62;border-radius:10px;color:#dbeaf6;padding:9px 14px;font-size:.8rem;font-weight:830;background:#172d42;min-height:44px}
+    .hidden{display:none!important}
+    @media(max-width:700px){.driver-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.two{grid-template-columns:1fr}.shell{padding:15px 13px}.select-card,.panel,.schedule-card{padding:16px}.hero{padding:19px}.brand-title{font-size:1rem}.top-inner{padding-inline:13px}.departure-block .time{font-size:2.65rem}}
+    @media(max-width:380px){.driver-grid{gap:6px}.driver-button{min-height:59px;font-size:1.05rem}.clock{font-size:1.2rem}.brand-sub{font-size:.65rem}.stop-bubble{width:58px;height:58px}.route-mini{gap:4px;padding-inline:8px}.route-mini strong{font-size:.8rem}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.track>div{transition:none}}
+  </style>
+</head>
+<body>
+<header class="topbar"><div class="top-inner">
+  <div class="brand"><div class="brand-icon" aria-hidden="true">🚌</div><div><div class="brand-title">VSS <span style="color:var(--yellow)">DRIVER</span></div><div class="brand-sub">Winterfahrplan · 02.11.–24.12.2026</div></div></div>
+  <div class="clock" id="clock">--:--<small>Wiener Zeit</small></div>
+</div></header>
+<main class="shell">
+  <div class="notice"><span aria-hidden="true">◷</span><span><strong>Nur Fahrplandaten.</strong> Keine GPS-Ortung oder Verkehrsdaten. Die angezeigte Position ist eine zeitliche Schätzung.</span></div>
+  <section class="card select-card" aria-label="Fahrzeug auswählen">
+    <div class="section-head"><h2>Fahrzeug wählen</h2><span id="serviceDate" class="small"></span></div>
+    <div id="driverButtons" class="driver-grid" role="group" aria-label="Buscode"></div>
+    <div class="driver-description">Wähle z. B. <b>S1</b>, <b>R1</b> oder <b>D1</b>. Der Dienst folgt automatisch auch bei Linienwechseln.</div>
+  </section>
+  <div id="loadError" class="warning error hidden" role="alert"></div>
+  <div id="content" class="hidden" aria-live="polite">
+    <section class="card hero" id="nowSection">
+      <div class="hero-top"><div class="status-line" id="statusChips"></div><span class="hero-date" id="modeLabel"></span></div>
+      <div class="eyebrow" style="margin:4px 0 0">Jetzt laut Fahrplan</div>
+      <h2 id="stateTitle">Dienst wird geladen…</h2>
+      <p class="hero-main-copy" id="stateDetail"></p>
+      <div class="route-mini" id="routeMini"><div><span class="label">Letzter Halt</span><strong id="lastStopText">—</strong></div><span class="arrow">→</span><div class="right"><span class="label">Nächster Halt</span><strong id="nextStopText">—</strong></div></div>
+      <div class="track" aria-hidden="true"><div id="routeProgress" style="width:0%"></div></div>
+      <div class="hero-note" id="heroNote">Alle Uhrzeiten lokal in Wien · Ohne Echtzeitdaten</div>
+    </section>
+    <div class="two">
+      <section class="card panel next" id="nextCard" aria-label="Nächste Haltestelle">
+        <div class="eyebrow">Nächste Haltestelle / Ankunft</div>
+        <div class="big-stop"><div class="stop-bubble" id="nextNumber">–</div><div><h3 id="nextName">—</h3><div class="sub" id="nextLine">—</div></div></div>
+        <div class="departure-block"><div class="time" id="nextTime">--:--</div><div class="count" id="nextCountdown">—</div></div>
+        <div class="small" id="nextExplanation" style="margin-top:10px"></div>
+      </section>
+      <section class="card panel" id="eventCard" aria-label="Nächster Diensthinweis">
+        <div class="eyebrow" id="dutyHeading">Nächster Diensthinweis</div>
+        <div class="event-title"><span class="event-icon" id="dutyIcon" aria-hidden="true">☕</span><span id="dutyTitle">—</span></div>
+        <div class="event-time" id="dutyTime">--:--</div>
+        <div class="small" id="dutyDetail" style="margin-top:7px"></div>
+      </section>
+    </div>
+    <section class="card schedule-card" id="scheduleSection" aria-label="Dienstablauf">
+      <div class="schedule-head"><div><h2>Dein Tagesablauf</h2><div class="small" id="scheduleSubtitle" style="margin-top:4px"></div></div><button type="button" id="toggleFull" class="toggle" aria-pressed="false">Ganzer Dienst</button></div>
+      <div class="timeline" id="timeline"></div>
+    </section>
+  </div>
+  <details class="setup" id="testPanel"><summary>Datum / Uhrzeit testen</summary><div class="setup-content">
+    <label>Datum<input type="date" id="testDate" min="2026-11-02" max="2026-12-24"></label>
+    <label>Uhrzeit<input type="time" id="testTime" step="60"></label>
+    <button type="button" class="toggle" id="useTest">Vorschau anzeigen</button>
+    <button type="button" class="toggle" id="useLive">Zurück zu Jetzt</button>
+  </div><p class="small" style="padding:0 15px 15px;margin:0">Mit der Vorschau lassen sich Pausen, Linienwechsel und die Wochenend-/Feiertagsregel für Station 16 überprüfen.</p></details>
+  <footer><strong>Vienna Sightseeing · Fahreransicht · Winter 2026</strong><div id="dataFooter">Lade Fahrplan…</div><div>Die App zeigt ausschließlich veröffentlichte Planzeiten. „Unterwegs“ oder „an der Station“ beschreibt keine tatsächliche Fahrzeugposition. Ereignisse mit geschätzter Ankunftszeit werden als solche gekennzeichnet.</div></footer>
+</main>
+<nav class="bottom-nav" aria-label="Navigation"><a href="#nowSection">⌖ Übersicht</a><a href="#scheduleSection">☰ Dienstablauf</a></nav>
+<script>
+'use strict';
+(function(){
+const DATA_URL='./timetable.json';
+const CODE_COLORS={blue:'#20acef',red:'#f04f54',yellow:'#f6c73f'};
+const LINE_NAMES={blue:'Blue Line',red:'Red Line',yellow:'Yellow Line'};
+const byId=id=>document.getElementById(id);
+const htmlEscape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const mins=t=>{const [h,m]=String(t).split(':').map(Number);return h*60+m};
+const pad=n=>String(n).padStart(2,'0');
+const dur=m=>{const n=Math.max(0,Math.ceil(m));return n>=60?`${Math.floor(n/60)} h ${pad(n%60)} min`:`${n} min`};
+const viennaFormatter=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Vienna',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
+function viennaNow(){const p=Object.fromEntries(viennaFormatter.formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return{date:`${p.year}-${p.month}-${p.day}`,time:`${p.hour}:${p.minute}`,second:p.second,minute:Number(p.hour)*60+Number(p.minute)+Number(p.second)/60};}
+function longDate(s){const [y,m,d]=s.split('-').map(Number);return new Intl.DateTimeFormat('de-AT',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(y,m-1,d)));}
+function isoWeekday(date){const [y,m,d]=date.split('-').map(Number);return (new Date(Date.UTC(y,m-1,d)).getUTCDay()+6)%7+1}
+function serviceToday(entry,date){const cal=entry.serviceCalendar;if(!cal)return true;return (Array.isArray(cal.weekdays)&&cal.weekdays.includes(isoWeekday(date)))||(Array.isArray(cal.additionalDates)&&cal.additionalDates.includes(date));}
+let data=null,selectedCode='',preview=false,showFull=false,cacheKey='',rows=[],specials=[],renderedKey='';
+function setText(id,value){byId(id).textContent=value}
+function getMoment(){if(preview){const date=byId('testDate').value;const time=byId('testTime').value||'12:00';return{date,time,minute:mins(time),second:'00'}}return viennaNow()}
+function getAllCodes(d){const set=new Set;for(const stop of Object.values(d.stops||{}))for(const entry of Object.values(stop))if(entry&&Array.isArray(entry.codes))entry.codes.forEach(c=>c&&set.add(c));return [...set].sort((a,b)=>{const order={D:0,R:1,S:2};return (order[a[0]]??9)-(order[b[0]]??9)||Number(a.slice(1))-Number(b.slice(1))})}
+function buildButtons(codes){byId('driverButtons').innerHTML=codes.map(c=>`<button type="button" class="driver-button" data-code="${htmlEscape(c)}" aria-pressed="${c===selectedCode}">${htmlEscape(c)}</button>`).join('');byId('driverButtons').addEventListener('click',e=>{const btn=e.target.closest('button[data-code]');if(!btn)return;selectedCode=btn.dataset.code;try{localStorage.setItem('vss.driver.code',selectedCode)}catch(e){};for(const b of byId('driverButtons').children)b.setAttribute('aria-pressed',String(b.dataset.code===selectedCode));cacheKey='';render(true)})}
+function allForVehicle(code,date){const r=[];let uid=0;for(const [line,meta] of Object.entries(data.lines)){const route=Array.isArray(meta.route)?meta.route:[];const seen=new Set;for(const stop of route){if(seen.has(stop))continue;seen.add(stop);const entry=data.stops?.[stop]?.[line];if(!entry||!serviceToday(entry,date))continue;for(let i=0;i<(entry.times||[]).length;i++){if(entry.codes?.[i]!==code)continue;const t=entry.times[i];r.push({uid:++uid,kind:'stop',line,stop:String(stop),name:entry.name||`Station ${stop}`,time:t,minute:mins(t),routeIndex:route.indexOf(stop)});}}}
+for(const event of data.planEvents||[]){if(event.vehicleCode!==code)continue;const t=event.time;const e={...event,uid:++uid,kind:'event',stop:String(event.stop),name:event.stopName||data.stops?.[String(event.stop)]?.[event.line]?.name||'Staatsoper',minute:mins(t)};r.push(e)}
+// The status marker belongs to arrival (Ankunft), never to the next departure.
+r.sort((a,b)=>a.minute-b.minute|| (a.kind==='event'?-1:1)||(a.uid-b.uid));
+return r}
+function typeTitle(e){if(!e)return'';if(e.type==='pause'||e.type==='pause_bus_change')return'PAUSE';if(e.type==='end_duty')return'OFF DUTY';if(e.type==='colour_change')return'LINIENWECHSEL';if(e.type==='night_tour')return'NT · NIGHT TOUR';return e.marker||'DIENSTHINWEIS'}
+function typeIcon(e){if(!e)return'ℹ';if(e.type==='pause'||e.type==='pause_bus_change')return'☕';if(e.type==='end_duty')return'⏹';if(e.type==='colour_change')return'⇄';if(e.type==='night_tour')return'☾';return'ℹ'}
+function findNextDeparture(events,at){return events.find(x=>x.kind==='stop'&&x.minute>at.minute+.001)}
+function describeEvent(e,events){if(!e)return'';const target=e.continuation;const next=target?`${LINE_NAMES[target.line]||target.line} ${target.time}`:'';const inferred=e.timeInferred?' · Ankunftszeit geschätzt':'';
+if(e.type==='night_tour')return`D1 wechselt nach der Ankunft um ${e.time} zum Night Tour Dienst (Abfahrt ${e.nightTourDeparture||'unbekannt'}). Keine reguläre Linienabfahrt.`;
+if(e.type==='end_duty')return`Dienstende an Station ${e.stop} (${e.name.replace(/\s*\(Ankunft\)/,'')}).${inferred}`;
+if(e.type==='colour_change')return`${LINE_NAMES[e.line]||e.line} → ${LINE_NAMES[target?.line]||'?'} · Weiterfahrt ${next}.`;
+if(e.type==='pause'||e.type==='pause_bus_change'){
+ const future=findNextDeparture(events,e);const end=target?{minute:mins(target.time),time:target.time}:future;
+ let pauseTxt=end&&end.minute>e.minute?` · ${dur(end.minute-e.minute)} bis ${end.time}`:'';
+ if(target)return`Pause${pauseTxt}. Danach ${LINE_NAMES[target.line]||target.line} ab ${target.time}${e.sourceNote?.includes('inferred')||e.sourceNote?.includes('inferred from')?' (Linienwechsel abgeleitet)':''}.`;
+ return`Planmäßige Pause an Station ${e.stop}${pauseTxt}.`;
+}return e.marker||''}
+function lineClass(e){return e?.line||'blue'}
+function stopLabel(r){return r?`#${r.stop} ${r.name.replace(/\s*\(Ankunft\)/,'')}`:'—'}
+function isDutyDone(last){return !!last?.kind&&last.kind==='event'&&(last.type==='end_duty'||last.type==='night_tour')}
+function firstFutureStops(events,at){return events.find(e=>e.kind==='stop'&&e.minute>=at-.001)}
+function model(events,at){const past=events.filter(e=>e.minute<=at+.001);const future=events.filter(e=>e.minute>at+.001);const last=past.at(-1)||null;const next=future[0]||null;const prevStop=past.filter(e=>e.kind==='stop').at(-1)||null;const nextStop=future.find(e=>e.kind==='stop')||null;const terminal=next?.kind==='event'&&next.stop==='1'?next:null;const nextAtStop=next?.kind==='event'?next:nextStop;const latestStatus=past.filter(e=>e.kind==='event').at(-1)||null;const upcomingStatus=future.filter(e=>e.kind==='event')[0]||null;return{last,next,prevStop,nextStop,terminal,nextAtStop,latestStatus,upcomingStatus,done:isDutyDone(last),past,future}}
+function renderHero(m,moment,valid){const {last,next,prevStop,nextStop,latestStatus,done}=m;const line=next?.line||last?.line||'blue';const col=CODE_COLORS[line]||CODE_COLORS.blue;byId('nowSection').style.setProperty('--current',col);byId('nextCard').style.setProperty('--current',col);byId('statusChips').innerHTML=`<span class="chip line" style="--current:${col}">${htmlEscape(LINE_NAMES[line]||line)}</span><span class="chip muted">${htmlEscape(selectedCode)}</span>${preview?'<span class="chip muted">VORSCHAU</span>':''}`;setText('modeLabel',longDate(moment.date));
+let title,detail,foot='Zeitbasierte Planung · keine Live-Position';let progress=0;
+if(!valid){title='Fahrplan außerhalb der Gültigkeit';detail=`Der Winterfahrplan gilt von ${longDate(data.validFrom)} bis ${longDate(data.validTo)}.`;}
+else if(!last){title='Dienst noch nicht gestartet';detail=next?`Erster geplanter Halt: ${stopLabel(next)} um ${next.time}.`:'Keine Fahrten für diesen Dienst gefunden.';}
+else if(done){title=last.type==='night_tour'?'Regulärer Liniendienst beendet':'Dienst beendet';detail=last.type==='night_tour'?`D1: Ankunft Station 1 um ${last.time}. Night Tour ab ${last.nightTourDeparture||'–'} (ohne weiteren Touren-Fahrplan).`:`${last.time} · ${stopLabel(last)}. ${last.timeInferred?'Ankunftszeit geschätzt.':''}`;progress=100;}
+else if(last.kind==='event'){
+  if(last.type==='pause'||last.type==='pause_bus_change'){title='☕ Planmäßige Pause';detail=describeEvent(last,m.past.concat(m.future));}
+  else if(last.type==='colour_change'){title='⇄ Linienwechsel';detail=describeEvent(last,m.past.concat(m.future));}
+  else{title=typeTitle(last);detail=describeEvent(last,m.past.concat(m.future))}
+}else if(next){const nextDesc=next.kind==='event'?'Ankunft':`Station ${next.stop}`;
+  title='Laut Plan unterwegs';detail=`Zwischen ${stopLabel(last)} (${last.time}) und ${nextDesc} ${next.kind==='event'?next.name.replace(/\s*\(Ankunft\)/,''):next.name} (${next.time}).`;
+  progress=Math.max(0,Math.min(100,(moment.minute-last.minute)/Math.max(.1,next.minute-last.minute)*100));
+}else{title='Letzter geplanter Halt erreicht';detail=`${stopLabel(last)} um ${last.time}. Für diesen Bus sind keine weiteren Zeiten eingetragen.`;progress=100;}
+setText('stateTitle',title);setText('stateDetail',detail);setText('lastStopText',last?stopLabel(last):'Noch kein Halt');setText('nextStopText',next?stopLabel(next):'Keine weiteren Halte');byId('routeProgress').style.width=progress+'%';setText('heroNote',foot);
+if(next&&next.kind==='event')setText('nextStopText',`${stopLabel(next)} · Ankunft`);
+if(m.latestStatus&&m.latestStatus.timeInferred)setText('heroNote','Achtung: ENDE-Ankunftszeiten in der Quelle nicht gedruckt, hier geschätzt · kein GPS');
+}
+function renderNext(m,moment,valid){const entry=m.done?null:(m.nextAtStop||m.nextStop);if(!valid||!entry){setText('nextNumber','–');setText('nextName',m.done?'Keine weitere Linienfahrt':'Keine nächste Haltestelle');setText('nextLine',m.done?'Dienst abgeschlossen':'Kein Fahrplaneintrag');setText('nextTime','--:--');setText('nextCountdown','—');setText('nextExplanation',m.done?'Für dieses Fahrzeug sind heute keine weiteren regulären Halte eingetragen.':'');return;}
+setText('nextNumber',entry.stop);setText('nextName',entry.name.replace(/\s*\(Ankunft\)/,''));setText('nextLine',`${LINE_NAMES[entry.line]||entry.line} · ${entry.kind==='event'?'Ankunft / Status':'Geplante Haltestellenzeit'}`);setText('nextTime',entry.time);setText('nextCountdown',dur(entry.minute-moment.minute));setText('nextExplanation',entry.kind==='event'?`${typeIcon(entry)} ${typeTitle(entry)}${entry.timeInferred?' (geschätzt)':''}`:'Nächster Halt gemäß Fahrplan (keine GPS-Position).')}
+function renderDuty(m,moment){const upcoming=m.upcomingStatus;const current=m.last?.kind==='event'?m.last:null;const e=current||(upcoming?.type==='night_tour'?null:upcoming);setText('dutyHeading',current?'Aktueller Diensthinweis':'Nächster Diensthinweis');if(!e){setText('dutyIcon','✓');setText('dutyTitle','Keine weiteren Hinweise');setText('dutyTime','—');setText('dutyDetail','Bis zum nächsten planmäßigen Halt ist kein weiterer Diensthinweis erforderlich. Hinweise stehen im Dienstablauf an ihrer Ankunftszeit.');return}
+setText('dutyIcon',typeIcon(e));setText('dutyTitle',typeTitle(e));setText('dutyTime',e.time);let desc=describeEvent(e,rows);if(e===upcoming)desc+=` · In ${dur(e.minute-moment.minute)}.`;if(e.timeInferred)desc+=' ⚠ Schätzung.';setText('dutyDetail',desc)}
+function timelineLine(e){return LINE_NAMES[e.line]||e.line}
+function rowHTML(e,current){const future=e.minute>current+.001;const passed=e.minute<current-.001;const isSpecial=e.kind==='event';const eventText=isSpecial?typeTitle(e):e.name;const status=isSpecial?`${typeIcon(e)} ${eventText}`:`#${e.stop} ${e.name}`;const desc=isSpecial?`${timelineLine(e)} · Ankunft Station ${e.stop}${e.timeInferred?' · geschätzt':''}`:`${timelineLine(e)} · Haltestelle ${e.stop}`;
+const isNow=Math.abs(e.minute-current)<=.7;let css=`item ${isSpecial?'special':''} ${passed?'past':''} ${isNow?'now':''}`;const color=CODE_COLORS[e.line]||'#627d95';const displayTime=isSpecial&&e.timeInferred?'~'+e.time:e.time;let trailing=isSpecial?`<span class="item-tag" style="border-color:${color};color:#f6e4ba">${htmlEscape(typeIcon(e))} ${htmlEscape(e.marker||'STATUS')}</span>`:`<span class="item-tag" style="border-color:${color};color:${color}">${htmlEscape(timelineLine(e))}</span>`;
+let more=isSpecial?`<div class="small" style="margin-top:5px">${htmlEscape(describeEvent(e,rows))}</div>`:'';
+return`<div class="${css}" style="--event-color:${color}"><div class="item-time">${htmlEscape(displayTime)}</div><div class="item-dot"></div><div class="item-body"><div class="item-main"><b>${htmlEscape(status)}</b><div class="item-desc">${htmlEscape(desc)}</div>${more}</div>${trailing}</div></div>`}
+function renderTimeline(m,moment,valid){const target=byId('timeline');if(!valid){target.innerHTML='<div class="empty">Für dieses Datum gilt der gewählte Fahrplan nicht.</div>';return}
+if(!rows.length){target.innerHTML='<div class="empty">Keine Fahrten für diesen Fahrzeugcode.</div>';return}
+let list=rows;
+if(!showFull){let idx=rows.findIndex(e=>e.minute>=moment.minute-.001);if(idx<0)idx=rows.length;list=rows.slice(Math.max(0,idx-4),Math.min(rows.length,idx+14));}
+target.innerHTML=list.map(e=>rowHTML(e,moment.minute)).join('');setText('scheduleSubtitle',`${rows.filter(r=>r.kind==='stop').length} Haltestellenzeiten · ${rows.filter(r=>r.kind==='event').length} Diensthinweise${showFull?' · ganzer Tag':' · rund um die aktuelle Zeit'}`);}
+function render(force=false){if(!data||!selectedCode)return;const moment=getMoment();if(!moment.date||!moment.time)return;const valid=moment.date>=data.validFrom&&moment.date<=data.validTo;const newKey=selectedCode+'|'+moment.date;if(cacheKey!==newKey){rows=allForVehicle(selectedCode,moment.date);cacheKey=newKey;}const renderKey=`${newKey}|${Math.floor(moment.minute)}|${preview}|${showFull}|${valid}`;if(renderedKey===renderKey&&!force)return;renderedKey=renderKey;const m=model(rows,moment.minute);setText('serviceDate',longDate(moment.date));renderHero(m,moment,valid);renderNext(m,moment,valid);renderDuty(m,moment);renderTimeline(m,moment,valid);}
+function tick(){const p=viennaNow();byId('clock').innerHTML=`${p.time}<small>Wiener Zeit · ${p.second} s</small>`;render()}
+function setPreview(active){preview=active;renderedKey='';byId('useLive').disabled=!preview;byId('useTest').disabled=preview;render(true)}
+byId('toggleFull').addEventListener('click',()=>{showFull=!showFull;byId('toggleFull').textContent=showFull?'Rund um Jetzt':'Ganzer Dienst';byId('toggleFull').setAttribute('aria-pressed',String(showFull));render(true)});
+byId('useTest').addEventListener('click',()=>{if(!byId('testDate').value||!byId('testTime').value)return;setPreview(true);byId('content').scrollIntoView({block:'start',behavior:'smooth'});});
+byId('useLive').addEventListener('click',()=>setPreview(false));
+['testDate','testTime'].forEach(id=>byId(id).addEventListener('change',()=>{if(preview)render(true)}));
+async function start(){const now=viennaNow();byId('testDate').value=now.date;byId('testTime').value=now.time;byId('useLive').disabled=true;tick();
+try{const response=await fetch(DATA_URL,{cache:'no-store'});if(!response.ok)throw new Error(`HTTP ${response.status}`);const d=await response.json();if(!d||!d.stops||!d.lines||!d.validFrom||!d.validTo)throw new Error('Ungültige Fahrplandaten');data=d;
+const codes=getAllCodes(d);let saved='';try{saved=localStorage.getItem('vss.driver.code')||''}catch(e){}selectedCode=codes.includes(saved)?saved:(codes.includes('D1')?'D1':codes[0]||'');buildButtons(codes);
+setText('dataFooter',`Fahrplandatei: timetable.json · Version ${d.version||'–'} · Gültigkeit ${d.validFrom} bis ${d.validTo} · ${codes.length} Fahrzeugcodes.`);
+byId('content').classList.remove('hidden');if(!codes.length)throw new Error('Keine Fahrzeugcodes im JSON');render(true);setInterval(tick,12000);
+}catch(err){byId('loadError').classList.remove('hidden');byId('loadError').innerHTML=`Fahrplan konnte nicht geladen werden: <b>${htmlEscape(err.message)}</b>.<br>Lege <code>driver.html</code> und <code>timetable.json</code> im selben GitHub-Pages-Ordner ab. Öffne die Seite über https:// statt direkt als lokale Datei.`;setText('dataFooter','Fahrplandatei konnte nicht geladen werden.')}}
+start();
+})();
+</script>
+</body>
+</html>
